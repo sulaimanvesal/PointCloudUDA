@@ -14,7 +14,7 @@ Contact: Sulaiman Vesal (sulaiman dot vesal at fau dot com)
 * Clone this repo
 ```
 git clone https://github.com/sulaimanvesal/PointCloudUDA/
-cd CardiacQuanNet
+cd PointCloudUDA
 ```
 ## Dataset
 * Download the STACOM MS-CMRSeg 2019 Dataset: 
