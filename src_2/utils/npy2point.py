@@ -146,7 +146,7 @@ def npy2point(folder='ct_train', to_save='v', number_points=300, dim=3, crop_siz
     print("finish")
 
 
-def npy2point_datagenerator(mask=None, number_points=300, dim=3, crop_size=112, tocrop=True):
+def npy2point_datagenerator(mask=None, number_points=300, dim=3, crop_size=112, tocrop=False):
     import mcubes
     mask = np.where(mask > 0, 1, 0)
     mask = np.moveaxis(mask, -1, 0)
