@@ -7,6 +7,8 @@ import kornia
 dic_loss = kornia.losses.DiceLoss()
 # PyTorch includes
 import torch
+print("torrch version: {}".format(torch.__version__))
+from torch.utils.tensorboard import SummaryWriter
 # from torch.nn import BCELoss, CrossEntropyLoss
 import torch.nn.functional as F
 
@@ -25,26 +27,21 @@ from timer import timeit
 
 
 def get_generators(ids_train, ids_valid, ids_train_lge, ids_valid_lge, batch_size=16, n_samples=2000, crop_size=0, mh=False):
-    trainA_generator = DataGenerator_PointNet(df=ids_train, channel="channel_first", apply_noise=args.gn, gn_prob=args.gn_prob,
-                                              phase="train", apply_online_aug=args.offaug,
+    trainA_generator = DataGenerator_PointNet(df=ids_train, channel="channel_first",
+                                              phase="train",batch_size=batch_size, source="source", crop_size=crop_size,
+                                     n_samples=n_samples, match_hist=mh, ifvert=args.d4 or args.d4aux,
+                                              heavy_aug=args.heavy_aug, litaug=args.lit_aug, lit_prob=args.lit_prob, simple_aug=args.simple_aug)
+    validA_generator = DataGenerator_PointNet(df=ids_valid, channel="channel_first", phase="valid",
                                      batch_size=batch_size, source="source", crop_size=crop_size,
-                                     n_samples=n_samples, match_hist=mh, ifvert=args.d4, heavy_aug=args.heavy_aug)
-    validA_generator = DataGenerator_PointNet(df=ids_valid, channel="channel_first", apply_noise=False, phase="valid",
-                                     apply_online_aug=False,
-                                     batch_size=batch_size, source="source", crop_size=crop_size,
-                                     n_samples=-1, match_hist=mh, ifvert=args.d4)
-    trainB_generator = DataGenerator_PointNet(df=ids_train_lge, channel="channel_first", apply_noise=args.gn, gn_prob=args.gn_prob,
-                                              phase="train",apply_online_aug=args.offaug,
-                                     batch_size=batch_size, source="target", crop_size=crop_size,
-                                     n_samples=n_samples, ifvert=args.d4, heavy_aug=args.heavy_aug)
-    validB_generator = DataGenerator_PointNet(df=ids_valid_lge, channel="channel_first", apply_noise=False, phase="valid",
-                                     apply_online_aug=False,
-                                     batch_size=batch_size, source="target", crop_size=crop_size,
-                                     n_samples=-1, ifvert=args.d4)
-    testB_generator = DataGenerator_PointNet(df=ids_train_lge, channel="channel_first", apply_noise=False, phase="train",
-                                    apply_online_aug=False,
-                                    batch_size=batch_size, source="target", crop_size=crop_size,
-                                    n_samples=-1, ifvert=args.d4)
+                                     n_samples=-1, match_hist=mh, ifvert=args.d4 or args.d4aux)
+    trainB_generator = DataGenerator_PointNet(df=ids_train_lge, channel="channel_first",
+                                              phase="train",batch_size=batch_size, source="target", crop_size=crop_size,
+                                     n_samples=n_samples, ifvert=args.d4 or args.d4aux,
+                                              heavy_aug=args.heavy_aug, litaug=args.lit_aug, lit_prob=args.lit_prob, simple_aug=args.simple_aug)
+    validB_generator = DataGenerator_PointNet(df=ids_valid_lge, channel="channel_first", phase="valid",
+                                     batch_size=batch_size, source="target", crop_size=crop_size, n_samples=-1, ifvert=args.d4 or args.d4aux)
+    testB_generator = DataGenerator_PointNet(df=ids_train_lge, channel="channel_first", phase="train",
+                                    batch_size=batch_size, source="target", crop_size=crop_size, n_samples=-1, ifvert=args.d4 or args.d4aux)
     return iter(trainA_generator), iter(validA_generator), iter(trainB_generator), iter(validB_generator), iter(
         testB_generator)
 
@@ -57,25 +54,25 @@ def valid_model_with_one_dataset(seg_model, data_generator, hd=False):
     hd_list = []
     with torch.no_grad():
         for x_batch, y_batch, z_batch in data_generator:
-            prediction, _, vertS = seg_model(torch.tensor(x_batch).cuda())
+            prediction, _, vertS = seg_model(torch.from_numpy(x_batch).float().cuda())
             if args.softmax:
                 pred = F.softmax(prediction, dim=1)
-                l1 = F.cross_entropy(pred, torch.tensor(np.argmax(y_batch, axis=1), dtype=torch.long).cuda())
+                l1 = F.cross_entropy(pred, torch.from_numpy(np.argmax(y_batch, axis=1)).long().cuda())
             else:
                 pred = F.sigmoid(prediction)
-                l1 = F.binary_cross_entropy(pred, torch.tensor(y_batch, dtype=torch.float32).cuda())
+                l1 = F.binary_cross_entropy(pred, torch.from_numpy(y_batch).float().cuda())
             if args.dice:
-                l2 = dic_loss(prediction, torch.tensor(np.argmax(y_batch, axis=1), dtype=torch.int64).cuda())
+                l2 = dic_loss(prediction, torch.from_numpy(np.argmax(y_batch, axis=1)).long().cuda())
             else:
-                l2 = jaccard_loss(logits=pred, true=torch.tensor(y_batch, dtype=torch.float32).cuda(), activation=False)
+                l2 = jaccard_loss(logits=pred, true=torch.from_numpy(y_batch).float().cuda(), activation=False)
             l3 = 0
-            if args.d4:
-                l3 = batch_NN_loss(x=vertS, y=torch.tensor(z_batch).cuda())
+            if args.d4 or args.d4aux:
+                l3 = batch_NN_loss(x=vertS, y=torch.from_numpy(z_batch).float().cuda())
                 vert_loss_list.append(l3.item())
             else:
                 vert_loss_list.append(-1)
 
-            l = l1 + l2 + l3
+            l = l1 + l2
             loss_list.append(l.item())
 
             y_pred = prediction.cpu().detach().numpy()
@@ -86,7 +83,7 @@ def valid_model_with_one_dataset(seg_model, data_generator, hd=False):
             result = metrics2(img_pred=y_pred, img_gt=y_batch, apply_hd=hd, apply_asd=False)
             dice_list.append((result["lv"][0] + result["myo"][0] + result["la"][0] + result['aa'][0]) / 4.)
             if hd:
-                hd_list.append((result["lv"][1] + result["myo"][1] + result["la"][1] + result['aa'][0]) / 4.)
+                hd_list.append((result["lv"][1] + result["myo"][1] + result["la"][1] + result['aa'][1]) / 4.)
             # dice_list.append(dice_coef_multilabel(y_true=y_batch, y_pred=y_pred, channel='channel_first'))
             # if hd:
             #     y_pred = np.moveaxis(y_pred, 1, -1)
@@ -197,20 +194,20 @@ def train_epoch(model_gen, model_dis2, model_dis3, model_dis4, model_dis1=None,
         for param in model_gen.parameters():
             param.requires_grad = True
 
-        oS, oS2, vertS = model_gen(torch.tensor(imgA).cuda())
+        oS, oS2, vertS = model_gen(torch.from_numpy(imgA).float().cuda())
         if args.softmax:
             predS = F.softmax(oS, dim=1)
-            loss_seg = F.cross_entropy(predS, torch.tensor(np.argmax(maskA, axis=1), dtype=torch.long).cuda())
+            loss_seg = F.cross_entropy(predS, torch.from_numpy(np.argmax(maskA, axis=1)).long().cuda())
         else:
             predS = F.sigmoid(oS)
-            loss_seg = F.binary_cross_entropy(predS, torch.tensor(maskA, dtype=torch.float32).cuda())
+            loss_seg = F.binary_cross_entropy(predS, torch.from_numpy(maskA).float().cuda())
         if args.dice:
-            loss_seg2 = dic_loss(oS, torch.tensor(np.argmax(maskA, axis=1), dtype=torch.int64).cuda())
+            loss_seg2 = dic_loss(oS, torch.from_numpy(np.argmax(maskA, axis=1)).long().cuda())
         else:
-            loss_seg2 = jaccard_loss(logits=predS, true=torch.tensor(maskA, dtype=torch.float32).cuda(), activation=False)
+            loss_seg2 = jaccard_loss(logits=predS, true=torch.from_numpy(maskA).float().cuda(), activation=False)
         loss_seg3 = 0
-        if args.d4:
-            loss_seg3 = batch_NN_loss(x=vertS, y=torch.tensor(vertexA).cuda())
+        if args.d4 or args.d4aux:
+            loss_seg3 = batch_NN_loss(x=vertS, y=torch.from_numpy(vertexA).float().cuda())
             vertex_source_loss.append(loss_seg3.item())
         c = predS.size()[1]
         uncertainty_mapS = -1.0 * predS * torch.log(predS + smooth) / math.log(c)
@@ -231,7 +228,7 @@ def train_epoch(model_gen, model_dis2, model_dis3, model_dis4, model_dis1=None,
         seg_dice.append(dice_coef_multilabel(y_true=maskA, y_pred=y_pred, channel='channel_first'))
         # optim_gen.step()
 
-        oT, oT2, vertT = model_gen(torch.tensor(imgB).cuda())
+        oT, oT2, vertT = model_gen(torch.from_numpy(imgB).float().cuda())
         predT = F.softmax(oT, dim=1) if args.softmax else F.sigmoid(oT)
         c = predT.size()[1]
         uncertainty_mapT = -1.0 * predT * torch.log(predT + smooth) / math.log(c)
@@ -240,7 +237,7 @@ def train_epoch(model_gen, model_dis2, model_dis3, model_dis4, model_dis1=None,
         loss_adv_diff = 0
         if args.Tetpls:
             loss_adv_diff += temp_loss
-        if args.d1 or args.d2 or args.d3 or args.d4:
+        if args.d1 or args.d2 or args.d3 or args.d4 or args.d4aux:
             loss_adv_entropy = 0
             if args.d2:
                 D_out2 = model_dis2(uncertainty_mapT)
@@ -248,12 +245,14 @@ def train_epoch(model_gen, model_dis2, model_dis3, model_dis4, model_dis1=None,
                     source_domain_label).cuda())
 
             loss_adv_point = 0
-            if args.d4:
-                loss_vert_target = batch_NN_loss(x=vertT, y=torch.tensor(vertexB).cuda())
+            if args.d4 or args.d4aux:
+                loss_vert_target = batch_NN_loss(x=vertT, y=torch.from_numpy(vertexB).float().cuda())
                 vertex_target_loss.append(loss_vert_target.item())
-                D_out4 = model_dis4(vertT.transpose(2,1))[0]
-                loss_adv_point = args.dr * F.binary_cross_entropy_with_logits(D_out4, torch.FloatTensor(D_out4.data.size()).fill_(
-                    source_domain_label).cuda())
+                if args.d4:
+                    D_out4 = model_dis4(vertT.transpose(2,1))[0]
+                    loss_adv_point = args.dr * F.binary_cross_entropy_with_logits(D_out4, torch.FloatTensor(D_out4.data.size()).fill_(
+                        source_domain_label).cuda())
+
 
             loss_adv_output = 0
             if args.d1:
@@ -410,7 +409,7 @@ def print_epoch_result(train_result, valid_result, epoch, max_epochs):
                                                                                    valid_result['test_lge_dice'], valid_result['test_lge_loss'], valid_result['val_vert_loss']
 
     print_msg_line1 = f'valid_loss: {val_loss:.5f} ' + f'valid_lge_loss: {val_lge_loss:.5f} ' + f'test_lge_loss: {test_lge_loss:.5f} '
-    if args.d4:
+    if args.d4 or args.d4aux:
         ver_s_loss, ver_t_loss = train_result['ver_s_loss'], train_result['ver_t_loss']
         print_msg_line1 += f'vertex_loss: {ver_s_loss:.5f}, vertex_t_loss: {ver_t_loss:.5f} '
     print_msg_line2 = f'valid_dice: {val_dice:.5f} ' + \
@@ -419,9 +418,15 @@ def print_epoch_result(train_result, valid_result, epoch, max_epochs):
 
     print_msg_line1 = f'train_loss: {seg_loss:.5f} ' + print_msg_line1
     print_msg_line2 = f'train_dice: {seg_dice:.5f} ' + print_msg_line2
+    if args.d1:
+        dis1_acc1, dis1_acc2 = train_result["dis1_acc1"], train_result['dis1_acc2']
+        print_msg_line2 += f'd1_acc1: {dis1_acc1: 5f} ' + f'd1_acc2: {dis1_acc2: 5f} '
     if args.d2:
         dis2_acc1, dis2_acc2 = train_result["dis2_acc1"], train_result['dis2_acc2']
-        print_msg_line2 += f'disctor2_train_acc1: {dis2_acc1: 5f} ' + f'disctor2_train_acc2: {dis2_acc2: 5f} '
+        print_msg_line2 += f'd2_acc1: {dis2_acc1: 5f} ' + f'd2_acc2: {dis2_acc2: 5f} '
+    if args.d4:
+        dis4_acc1, dis4_acc2 = train_result["dis4_acc1"], train_result['dis4_acc2']
+        print_msg_line2 += f'd4_acc1: {dis4_acc1: 5f} ' + f'd4_acc2: {dis4_acc2: 5f} '
 
     print_msg_line1 = f'[{epoch + 1:>{epoch_len}}/{max_epochs:>{epoch_len}}] ' + print_msg_line1
     print_msg_line2 = ' ' * (2 * epoch_len + 4) + print_msg_line2
@@ -465,8 +470,8 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
     # elif args.model == 'sd':
     #     model_gen = SDUnet(n_channels=1, n_classes=5, feature_dis=args.d3, pointnet=args.d4)
     else:
-        model_gen = Segmentation_model_Point(filters=args.nf, in_channels=3, feature_dis=args.d3, pointnet=args.d4, drop=args.drop,
-                                             n_class=5, fc_inch=121, heinit=args.he, multicuda=args.multicuda)
+        model_gen = Segmentation_model_Point(filters=args.nf, in_channels=3, feature_dis=args.d3, pointnet=args.d4 or args.d4aux, drop=args.drop,
+                                             n_class=5, fc_inch=121, heinit=args.he, multicuda=args.multicuda, extpn=args.extpn)
 
     if args.multicuda:
         model_gen.tomulticuda()
@@ -476,24 +481,32 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
     # model_dis = BoundaryDiscriminator().cuda()
     model_dis1 = None
     if args.d1:
-        model_dis1 = UncertaintyDiscriminator(in_channel=5, heinit=args.he).cuda()
+        model_dis1 = UncertaintyDiscriminator(in_channel=5, heinit=args.he, ext=args.extd1).cuda()
     model_dis2 = None
     if args.d2:
-        model_dis2 = UncertaintyDiscriminator(in_channel=5, heinit=args.he).cuda()
+        model_dis2 = UncertaintyDiscriminator(in_channel=5, heinit=args.he, ext=args.extd2).cuda()
     model_dis3 = None
     if args.d3:
         from networks.GAN import OutputDiscriminator
         model_dis3 = OutputDiscriminator(in_channel=5, softmax=args.softmax).cuda()
     model_dis4 = None
     if args.d4:
-        model_dis4 = PointNetCls().cuda()
-    # 3. optimizer
+        model_dis4 = PointNetCls(feature_transform=args.ft, ext=args.extd4).cuda()
 
-    optim_gen = torch.optim.Adam(
-        model_gen.parameters(),
-        lr=args.lr,
-        betas=(0.9, 0.99)
-    )
+    # 3. optimizer
+    if args.sgd:
+        optim_gen = torch.optim.SGD(
+            model_gen.parameters(),
+            lr=args.lr,
+            momentum=.99,
+            weight_decay=.0005
+        )
+    else:
+        optim_gen = torch.optim.Adam(
+            model_gen.parameters(),
+            lr=args.lr,
+            betas=(0.9, 0.99)
+        )
     optim_dis1 = None
     if args.d1:
         optim_dis1 = torch.optim.SGD(
@@ -581,9 +594,11 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
                                                        model_name=d4_weight_dir,
                                                        entire_model=False)
     #model_gen.load_state_dict(torch.load(root_directory + 'unet_multilevel_model_checkpoint_stage2.pt'))
+    start_epoch = 0
     if args.load_weight:
         checkpoint = torch.load(weight_dir)
         try:
+            # start_epoch = checkpoint['epoch']
             model_gen.load_state_dict(checkpoint['model_state_dict'])
             optim_gen.load_state_dict(checkpoint['optimizer_state_dict'])
             if args.lr_fix != args.lr:
@@ -657,7 +672,7 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
     seg_lr, disctor2_lr = [], []
     etp_loss, etp_loss_T = [], []
     max_time_elapse_epoch = 0
-    for epoch in tqdm.trange(n_epochs, desc='Train', ncols=80):
+    for epoch in tqdm.trange(start_epoch, n_epochs, desc='Train', ncols=80):
         iter_start_time = datetime.now()
         train_result = train_epoch(model_gen=model_gen, model_dis2=model_dis2, model_dis3=model_dis3, model_dis4=model_dis4, model_dis1=model_dis1,
                                    optim_gen=optim_gen, optim_dis2=optim_dis2, optim_dis3=optim_dis3, optim_dis4=optim_dis4, optim_dis1=optim_dis1,
@@ -677,10 +692,11 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
             d3_acc1.append(train_result['dis3_acc1'])
             d3_acc2.append(train_result['dis3_acc2'])
         if args.d4:
-            pcloud_s_loss.append(train_result['ver_s_loss'])
-            pcloud_t_loss.append(train_result['ver_t_loss'])
             d4_acc1.append(train_result['dis4_acc1'])
             d4_acc2.append(train_result['dis4_acc2'])
+        if args.d4 or args.d4aux:
+            pcloud_s_loss.append(train_result['ver_s_loss'])
+            pcloud_t_loss.append(train_result['ver_t_loss'])
 
         valid_result = valid_model(seg_model=model_gen, validA_iterator=validA_iterator,
                                    validB_iterator=validB_iterator, testB_generator=testB_generator)
@@ -728,12 +744,19 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
                     param_group['lr'] = lr_gen
         print("time elapsed: {} hours".format(np.around((datetime.now() - start_time).seconds / 3600., 1)))
         max_time_elapse_epoch = max(np.around((datetime.now() - iter_start_time).seconds), max_time_elapse_epoch)
-        max_duration = 24 * 3600 - max_time_elapse_epoch - 15 * 60
+        max_duration = 24 * 3600 - max_time_elapse_epoch - 20 * 60
     print("Best model on epoch {}: train_dice {}, valid_dice {}, lge_dice {}, test_lge_dice {}".format(
-        the_epoch, best_train_result['seg_dice'], best_valid_result['val_dice'], best_valid_result['val_lge_dice'],
-        best_valid_result['test_lge_dice']))
+        the_epoch, np.round(best_train_result['seg_dice'], decimals=3), np.round(best_valid_result['val_dice'], decimals=3),
+        np.round(best_valid_result['val_lge_dice'], decimals=3), np.round(best_valid_result['test_lge_dice'], decimals=3)))
 
-    from torch.utils.tensorboard import SummaryWriter
+    # evaluate the model
+    print('Evaluate the model')
+    best_model_name_base, ext = os.path.splitext(best_weight_dir)
+    root_directory = '{}{}{}{}'.format(best_model_name_base, '.Scr', np.around(modelcheckpoint_unet.best_result, 3), ext)
+    print("root directory: {}".format(root_directory))
+    from predict_output_tf import evaluate_segmentation
+    evaluate_segmentation(root_directory=root_directory, unet_model=model_gen, save=False, model_name='', ifhd=True, ifasd=True)
+
     writer = SummaryWriter(comment=appendix + ".Scr{}".format(np.around(best_valid_lge_dice, 3)))
     i = 1
     print("write a training summary")
@@ -778,22 +801,19 @@ def main(batch_size=24, n_samples=2000, n_epochs=200):
             i += 1
     if args.d4:
         i = 1
-        for p_s_loss, p_t_loss, v_vert_l, v_lge_vert_l, a1, a2 in zip(pcloud_s_loss, pcloud_t_loss, val_vert_loss, val_lge_vert_loss, d4_acc1, d4_acc2):
+        for a1, a2 in zip(d4_acc1, d4_acc2):
+            writer.add_scalar('d4_acc1', a1, i)
+            writer.add_scalar('d4_acc2', a2, i)
+            i += 1
+    if args.d4 or args.d4aux:
+        i = 1
+        for p_s_loss, p_t_loss, v_vert_l, v_lge_vert_l in zip(pcloud_s_loss, pcloud_t_loss, val_vert_loss, val_lge_vert_loss):
             writer.add_scalars('Loss_Point', {'PointCloudS': p_s_loss,
                                         'PointCloudT': p_t_loss,
                                         'vPointCloudS': v_vert_l,
                                         'vPointCloudT': v_lge_vert_l}, i)
-            writer.add_scalar('d4_acc1', a1, i)
-            writer.add_scalar('d4_acc2', a2, i)
             i += 1
     writer.close()
-    # evaluate the model
-    print('Evaluate the model')
-    best_model_name_base, ext = os.path.splitext(best_weight_dir)
-    root_directory = '{}{}{}{}'.format(best_model_name_base, '.Scr', np.around(modelcheckpoint_unet.best_result, 3), ext)
-    print("root directory: {}".format(root_directory))
-    from predict_output_tf import evaluate_segmentation
-    evaluate_segmentation(root_directory=root_directory, unet_model=model_gen, save=False, model_name='', ifhd=True, ifasd=True)
 
 def get_appendix():
     appendix = args.apdx + '.' + args.model + '.lr{}'.format(args.lr_fix)
@@ -813,18 +833,24 @@ def get_appendix():
         appendix += '.w2_{}'.format(args.w2)
     if args.w4 != 1:
         appendix += '.w4_{}'.format(args.w4)
-    if args.raug:
-        appendix += '.raug'
-    if not args.offaug:
-        appendix += '.offaug'
-    if args.gn:
-        appendix += '.gn'
-        if args.gn_prob != .5:
-            appendix += str(args.gn_prob)
+    # if args.raug:
+    #     appendix += '.raug'
+    # if args.gn:
+    #     appendix += '.gn'
+    #     if args.gn_prob != .5:
+    #         appendix += str(args.gn_prob)
+    if args.sgd:
+        appendix += '.sgd'
     if not args.offmh:
         appendix += '.offmh'
     if args.heavy_aug:
         appendix += '.hvyaug'
+    elif args.lit_aug:
+        appendix += '.litaug'
+    if args.lit_prob:
+        appendix += '.litprob'
+    if args.simple_aug:
+        appendix += '.saug'
     if args.drop:
         appendix += '.drop'
     if args.softmax:
@@ -841,6 +867,20 @@ def get_appendix():
         appendix += '.dice'
     if args.he:
         appendix += '.he'
+    if args.extd1:
+        appendix += '.extd1'
+    if args.extd2:
+        appendix += '.extd2'
+    if args.extd4:
+        appendix += '.extd4'
+    if args.extpn:
+        appendix += '.extpn'
+    if args.ft:
+        appendix += '.ft'
+    if args.d4aux:
+        appendix += '.d4aux'
+    if args.dr != 0.01:
+        appendix += '.dr{}'.format(args.dr)
     return appendix
 
 
@@ -852,11 +892,13 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-raug", help='whether to use raugmented data', action='store_true')
-    parser.add_argument("-offaug", help='whether not to augment the data', action='store_false')
-    parser.add_argument("-gn", help='whether to apply gaussian noise', action='store_true')
-    parser.add_argument("-gn_prob", help='The probability to apply gaussian noise', type=float, default=.5)
+    # parser.add_argument("-raug", help='whether to use raugmented data', action='store_true')
+    # parser.add_argument("-gn", help='whether to apply gaussian noise', action='store_true')
+    # parser.add_argument("-gn_prob", help='The probability to apply gaussian noise', type=float, default=.5)
     parser.add_argument("-heavy_aug", help='whether to apply heavy augmentation', action='store_true')
+    parser.add_argument("-lit_aug", help='whether to apply light augmentation', action='store_true')
+    parser.add_argument("-lit_prob", help='whether to decrease the probability of augmentation', action='store_true')
+    parser.add_argument("-simple_aug", help='whether to decrease the number of augmentation', action='store_true')
     parser.add_argument("-offmh", help='whether not to apply histogram matching', action='store_false')
     parser.add_argument("-load_weight", help='whether to load weight', action='store_true')
     parser.add_argument("-bs", help="the batch size of training", type=int, default=16)
@@ -864,6 +906,7 @@ if __name__ == '__main__':
     parser.add_argument("-e", help="number of epochs", type=int, default=200)
     parser.add_argument("-lr", help="learning rate of unet", type=float, default=1e-3)
     parser.add_argument("-lr_fix", help="learning rate of unet", type=float, default=1e-3)
+    parser.add_argument("-sgd", help="whether to use sgd for the unet", action='store_true')
     parser.add_argument("-offdecay", help="whether not to use learning rate decay for unet", action='store_false')
     parser.add_argument("-apdx", help="the appendix to the checkpoint", type=str, default='train_point_tf')
     parser.add_argument("-model", help="the unet model chosen to use", type=str, default='resnet') # sk, sd
@@ -892,11 +935,19 @@ if __name__ == '__main__':
     parser.add_argument("-dice", help="whether to use dice loss", action='store_true')
     parser.add_argument("-he", help="whether to use He initializer", action='store_true')
     parser.add_argument("-multicuda", help="whether to use two cuda gpus", action='store_true')
+    parser.add_argument("-extpn", help="whether to extend pointnet", action='store_true')
+    parser.add_argument("-extd1", help="whether to extend output discriminator", action='store_true')
+    parser.add_argument("-extd2", help="whether to extend entropy discriminator", action='store_true')
+    parser.add_argument("-extd4", help="whether to extend pointcloud classifier", action='store_true')
+    parser.add_argument("-d4aux", help="whether to learn point cloud generator", action='store_true')
+    parser.add_argument("-pt", help="whether to load pretrained model", action='store_true')
+    parser.add_argument("-ft", help="whether to apply feature transformation layer in pointcloudcls", action='store_true')
 
     args = parser.parse_args()
     assert args.model == 'resnet' or args.model == 'sk' or args.model == 'sd', "model has to be amoong 'resnet', 'sk' and 'sd'"
     # assert not (args.softmax and args.sigmoid), "Only one of 'softmax' or 'sigmoid' can be used for activation function."
-    assert args.gn_prob > 0 and args.gn_prob <= 1, 'gn_prob must be > 0 and <= 1'
+    # assert args.gn_prob > 0 and args.gn_prob <= 1, 'gn_prob must be > 0 and <= 1'
+    assert not (args.heavy_aug and args.lit_aug)
 
     appendix = get_appendix()
     print(appendix)
