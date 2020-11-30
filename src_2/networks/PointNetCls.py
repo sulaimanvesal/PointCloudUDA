@@ -102,15 +102,30 @@ class STNkd(nn.Module):
         return x
 
 class PointNetfeat(nn.Module):
-    def __init__(self, global_feat = True, feature_transform = False, sample_transform=True, kernel_size=1, stride=1, in_channel=3, dim=3):
+    def __init__(self, global_feat = True, feature_transform = False, sample_transform=True, kernel_size=1, stride=1, in_channel=3, dim=3, ext=False):
         super(PointNetfeat, self).__init__()
         self.stn = STN3d(dim=dim)
-        self.conv1 = torch.nn.Conv1d(in_channel, 64, kernel_size, stride, kernel_size // 2)
-        self.conv2 = torch.nn.Conv1d(64, 128, kernel_size, stride, kernel_size // 2)
-        self.conv3 = torch.nn.Conv1d(128, 1024, kernel_size, stride, kernel_size // 2)
-        self.bn1 = nn.BatchNorm1d(64)
-        self.bn2 = nn.BatchNorm1d(128)
-        self.bn3 = nn.BatchNorm1d(1024)
+        self._ext = ext
+        if self._ext:
+            self.conv1 = torch.nn.Conv1d(in_channel, 8, kernel_size, stride, kernel_size // 2)
+            self.bn1 = nn.BatchNorm1d(8)
+            self.conv1_1 = torch.nn.Conv1d(8, 64, kernel_size, stride, kernel_size // 2)
+            self.bn1_1 = nn.BatchNorm1d(64)
+            self.conv2 = torch.nn.Conv1d(64, 128, kernel_size, stride, kernel_size // 2)
+            self.bn2 = nn.BatchNorm1d(128)
+            self.conv2_1 = torch.nn.Conv1d(128, 256, kernel_size, stride, kernel_size // 2)
+            self.bn2_1 = nn.BatchNorm1d(256)
+            self.conv3 = torch.nn.Conv1d(256, 512, kernel_size, stride, kernel_size // 2)
+            self.bn3 = nn.BatchNorm1d(512)
+            self.conv3_1 = torch.nn.Conv1d(512, 1024, kernel_size, stride, kernel_size // 2)
+            self.bn3_1 = nn.BatchNorm1d(1024)
+        else:
+            self.conv1 = torch.nn.Conv1d(in_channel, 64, kernel_size, stride, kernel_size // 2)
+            self.conv2 = torch.nn.Conv1d(64, 128, kernel_size, stride, kernel_size // 2)
+            self.conv3 = torch.nn.Conv1d(128, 1024, kernel_size, stride, kernel_size // 2)
+            self.bn1 = nn.BatchNorm1d(64)
+            self.bn2 = nn.BatchNorm1d(128)
+            self.bn3 = nn.BatchNorm1d(1024)
         self.global_feat = global_feat
         self.feature_transform = feature_transform
         self._sample_transform = sample_transform
@@ -126,6 +141,8 @@ class PointNetfeat(nn.Module):
             x = torch.bmm(x, trans)
             x = x.transpose(2, 1)
         x = F.relu(self.bn1(self.conv1(x)))
+        if self._ext:
+            x = F.relu(self.bn1_1(self.conv1_1(x)))
 
         if self.feature_transform:
             trans_feat = self.fstn(x)
@@ -137,7 +154,11 @@ class PointNetfeat(nn.Module):
 
         pointfeat = x
         x = F.relu(self.bn2(self.conv2(x)))
+        if self._ext:
+            x = F.relu(self.bn2_1(self.conv2_1(x)))
         x = self.bn3(self.conv3(x))
+        if self._ext:
+            x = F.relu(self.bn3_1(self.conv3_1(x)))
         x = torch.max(x, 2, keepdim=True)[0]
         x = x.view(-1, 1024)
         if self.global_feat:
@@ -147,10 +168,11 @@ class PointNetfeat(nn.Module):
             return torch.cat([x, pointfeat], 1), trans, trans_feat
 
 class PointNetCls(nn.Module):
-    def __init__(self, feature_transform=False, sample_transform=True, kernel_size=1, stride=1, in_channel=3, dim=3):
+    def __init__(self, feature_transform=False, sample_transform=True, kernel_size=1, stride=1, in_channel=3, dim=3, ext=False):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
-        self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform, sample_transform=sample_transform, kernel_size=kernel_size, stride=stride, in_channel=in_channel, dim=dim)
+        self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform, sample_transform=sample_transform,
+                                 kernel_size=kernel_size, stride=stride, in_channel=in_channel, dim=dim, ext=ext)
         self.fc1 = nn.Linear(1024, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, 1)

@@ -87,7 +87,7 @@ class OutputDiscriminator(nn.Module):
 
 
 class UncertaintyDiscriminator(nn.Module):
-    def __init__(self, in_channel=2, heinit=False):
+    def __init__(self, in_channel=2, heinit=False, ext=False):
         # assert not(softmax and sigmoid), "Only one of 'softmax' or 'sigmoid' can be used for activation function."
         super(UncertaintyDiscriminator, self).__init__()
         # self._softmax = softmax
@@ -98,8 +98,15 @@ class UncertaintyDiscriminator(nn.Module):
         self.conv2 = nn.Conv2d(filter_num_list[0], filter_num_list[1], kernel_size=4, stride=2, padding=2, bias=False)
         self.conv3 = nn.Conv2d(filter_num_list[1], filter_num_list[2], kernel_size=4, stride=2, padding=2, bias=False)
         self.conv4 = nn.Conv2d(filter_num_list[2], filter_num_list[3], kernel_size=4, stride=2, padding=2, bias=False)
-        self.conv5 = nn.Conv2d(filter_num_list[3], filter_num_list[4], kernel_size=4, stride=2, padding=2, bias=False)
+        if ext:
+            self.conv4_2 = nn.Conv2d(filter_num_list[3], 1024, kernel_size=3, stride=2, padding=1, bias=False)
+            self.conv4_3 = nn.Conv2d(1024, filter_num_list[2], kernel_size=3, stride=2, padding=1, bias=False)
+            self.conv5 = nn.Conv2d(filter_num_list[2], filter_num_list[4], kernel_size=4, stride=2, padding=2,
+                                   bias=False)
+        else:
+            self.conv5 = nn.Conv2d(filter_num_list[3], filter_num_list[4], kernel_size=4, stride=2, padding=2, bias=False)
         self.leakyrelu = nn.LeakyReLU(negative_slope=0.2)
+        self._ext = ext
         # self.sigmoid = nn.Sigmoid()
         self._initialize_weights(heinit=heinit)
 
@@ -130,6 +137,9 @@ class UncertaintyDiscriminator(nn.Module):
         x = self.leakyrelu(self.conv2(x))
         x = self.leakyrelu(self.conv3(x))
         x = self.leakyrelu(self.conv4(x))
+        if self._ext:
+            x = self.leakyrelu(self.conv4_2(x))
+            x = self.leakyrelu(self.conv4_3(x))
         x = self.conv5(x)
         return x
 

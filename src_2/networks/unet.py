@@ -74,15 +74,22 @@ class Bottleneck(nn.Module):
 
 
 class PointNet(nn.Module):
-    def __init__(self, num_points = 300, fc_inch=81, conv_inch=512):
+    def __init__(self, num_points = 300, fc_inch=81, conv_inch=512, ext=False):
         super().__init__()
         self.num_points = num_points
         self.ReLU = nn.LeakyReLU(inplace=True)
         # Final convolution is initialized differently form the rest
+        if ext:
+            self.conv1 = nn.Conv2d(conv_inch, conv_inch * 2, kernel_size=3, padding=1)
+            self.conv2 = nn.Conv2d(conv_inch * 2, conv_inch, kernel_size=3, padding=1)
         self.final_conv = nn.Conv2d(conv_inch, self.num_points, kernel_size=6)
         self.final_fc = nn.Linear(fc_inch, 3)
+        self._ext = ext
 
     def forward(self, x):
+        if self._ext:
+            x = self.ReLU(self.conv1(x))
+            x = self.ReLU(self.conv2(x))
         x = self.ReLU(self.final_conv(x))
         x = x.view(x.size(0), x.size(1), -1)
         x = self.final_fc(x)
@@ -159,13 +166,14 @@ class Segmentation_model_Point(nn.Module):
     # filters=32, n_block=4, pointoff: 13,483,844 params
     # filters=64, n_block=3, pointoff: 13,404,804 params
     # filters=64, n_block=4, pointoff: 53,915,268 params
-    def __init__(self, filters=32, in_channels=3, n_block=4, bottleneck_depth=4, n_class=4, pointnet=False, feature_dis=False, drop=False, fc_inch=81, heinit=False, multicuda=False):
+    def __init__(self, filters=32, in_channels=3, n_block=4, bottleneck_depth=4, n_class=4, pointnet=False,
+                 feature_dis=False, drop=False, fc_inch=81, heinit=False, multicuda=False, extpn=False):
         super().__init__()
         self._pointnet = pointnet
         self.encoder = Encoder(filters=filters, in_channels=in_channels, n_block=n_block)
         self.bottleneck = Bottleneck(filters=filters, n_block=n_block, depth=bottleneck_depth)
         if pointnet:
-            self.pointNet = PointNet(num_points=300, fc_inch=fc_inch, conv_inch=512 * filters//32)
+            self.pointNet = PointNet(num_points=300, fc_inch=fc_inch, conv_inch=512 * filters//32, ext=extpn)
         self.decoder = Decoder(filters=filters, n_block=n_block, drop=drop)
         self.classifier = nn.Conv2d(in_channels=filters, out_channels=n_class, kernel_size=(1, 1))
         if feature_dis:
@@ -232,8 +240,10 @@ class Segmentation_model_Point(nn.Module):
 
 if __name__ == '__main__':
     img = rand((2, 3, 256, 256)).cuda()
-    model = Segmentation_model_Point(filters=32, n_block=4, pointnet=False, fc_inch=121)
-    output = model.cuda().forward(img, print_shape=True)
+    model = Segmentation_model_Point(filters=32, n_block=4, pointnet=False or True, fc_inch=121)
+    output, _, vert = model.cuda().forward(img, print_shape=True)
+    print(vert.size())
+    input()
     def get_n_params(model):
         pp = 0
         for p in list(model.parameters()):
