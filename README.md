@@ -12,10 +12,10 @@ Pytorch implementation of our method for unsupervised domain adaptation for card
 <img src="https://github.com/sulaimanvesal/PointCloudUDA/blob/master/images/git_framework.png" width="800">
 
 ## Dataset
-* Download the STACOM MS-CMRSeg 2019 Dataset: 
+* Download the Multi-sequence Cardiac MR Segmentation Challenge (MS-CMRSeg 2019) dataset: 
       https://zmiclab.github.io/projects/mscmrseg19/
       
-* Download the STACOM MS-CMRSeg 2019 Dataset: 
+* Download the MM-WHS: Multi-Modality Whole Heart Segmentation Challenge (MM-WHS 2018) dataset: 
       https://zmiclab.github.io/projects/mmwhs/
       
     *  The pre-processed data has been released from our work [PnP-AdaNet](https://github.com/cchen-cc/SIFA).     
