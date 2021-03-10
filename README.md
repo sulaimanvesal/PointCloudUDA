@@ -34,3 +34,17 @@ cd PointCloudUDA
     Run ./evaluate.py to start the evaluation.
 
 
+---
+## Citations
+Please consider citing the following papers in your publications if they help your research.
+```
+@ARTICLE{9302580,
+  author={S. {Vesal} and M. {Gu}  and R. {Kosti} and A. {Maier} and N. {Ravikumar}},
+  journal={IEEE Transaction in Medical Imaging}, 
+  title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac-MR Segmentation}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={1-1},
+  doi={10.1109/JBHI.2020.3046449}}
+```
