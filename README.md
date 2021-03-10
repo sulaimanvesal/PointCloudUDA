@@ -1,6 +1,6 @@
-# Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac-MR Segmentation
+# Adapt Everywhere
 
-Pytorch implementation of our method for unsupervised domain adaptation for cardiac-MR using Point-cloud and Entropy manimisation. Based on this implementation, our result achieved state-of-the-art UDA performance for MULTI-SEQUENCE CARDIAC MR SEGMENTATION CHALLENGE, MICCAI-STACOM 2019.
+Pytorch implementation of our method for IEEE-TMI paper: "Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac-MR Segmentation". 
 
 ### Contact: Sulaiman Vesal (sulaiman dot vesal at fau dot com)
 
