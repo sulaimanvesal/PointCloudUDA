@@ -16,11 +16,11 @@ Pytorch implementation of our method for unsupervised domain adaptation for card
       http://stacom2019.cardiacatlas.org/#
       
 * Download the STACOM MS-CMRSeg 2019 Dataset: 
-     *     Raw data needs to be written into tfrecord format to be decoded by ./data_loader.py. 
-     *     The pre-processed data has been released from our work PnP-AdaNet.     
-     *     The training data can be downloaded here. The testing CT data can be downloaded here. The testing MR data can be downloaded here.
-     *     Put tfrecord data of two domains into corresponding folders under ./data accordingly.
-     *     Run ./create_datalist.py to generate the datalists containing the path of each data.
+    *  Raw data needs to be written into tfrecord format to be decoded by ./data_loader.py. 
+    *  The pre-processed data has been released from our work PnP-AdaNet.     
+    *  The training data can be downloaded here. The testing CT data can be downloaded here. The testing MR data can be downloaded here.
+    *  Put tfrecord data of two domains into corresponding folders under ./data accordingly.
+    *  Run ./create_datalist.py to generate the datalists containing the path of each data.
 
 
 ## Installation
