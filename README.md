@@ -4,7 +4,7 @@ Pytorch implementation of our method for unsupervised domain adaptation for card
 
 Contact: Sulaiman Vesal (sulaiman dot vesal at fau dot com)
 
-![framework](Lvgit.png)
+![framework](images/git_framework.png)
 
 # Abstract
 
