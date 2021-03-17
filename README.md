@@ -59,9 +59,9 @@ Please consider citing the following papers in your publications if they help yo
   doi={10.1109/TMI.2021.3066683}}
   
 @misc{vesal2021adapt,
-      title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation}, 
-      author={Sulaiman Vesal and Mingxuan Gu and Ronak Kosti and Andreas Maier and Nishant Ravikumar},
-      year={2021},
-      eprint={2103.08219},
-      archivePrefix={arXiv}}
+  title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation}, 
+  author={Sulaiman Vesal and Mingxuan Gu and Ronak Kosti and Andreas Maier and Nishant Ravikumar},
+  year={2021},
+  eprint={2103.08219},
+  archivePrefix={arXiv}}
 ```
