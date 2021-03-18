@@ -14,7 +14,7 @@ from networks.GAN import UncertaintyDiscriminator
 from networks.PointNetCls import PointNetCls
 
 from utils.callbacks import ModelCheckPointCallback
-from data_generator_imgaug import ImageProcessor, DataGenerator_PointNet
+from data_generator_mscmrseg import ImageProcessor, DataGenerator_PointNet
 from utils.utils import soft_to_hard_pred
 from utils.loss import jaccard_loss, batch_NN_loss
 from utils.metric import evaluate, dice_coef_multilabel
