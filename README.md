@@ -48,13 +48,20 @@ cd PointCloudUDA
 ## Citations
 Please consider citing the following papers in your publications if they help your research.
 ```
-@ARTICLE{9302580,
-  author={S. {Vesal} and M. {Gu}  and R. {Kosti} and A. {Maier} and N. {Ravikumar}},
-  journal={IEEE Transaction in Medical Imaging}, 
-  title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac-MR Segmentation}, 
+@ARTICLE{9380742,
+  author={S. {Vesal} and M. {Gu} and R. {Kosti} and A. {Maier} and N. {Ravikumar}},
+  journal={IEEE Transactions on Medical Imaging}, 
+  title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation}, 
   year={2021},
   volume={},
   number={},
   pages={1-1},
-  doi={tbd}}
+  doi={10.1109/TMI.2021.3066683}}
+  
+@misc{vesal2021adapt,
+  title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation}, 
+  author={Sulaiman Vesal and Mingxuan Gu and Ronak Kosti and Andreas Maier and Nishant Ravikumar},
+  year={2021},
+  eprint={2103.08219},
+  archivePrefix={arXiv}}
 ```
