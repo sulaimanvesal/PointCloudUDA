@@ -774,8 +774,6 @@ def get_appendix():
         appendix += '.hvyaug'
     elif args.aug == 'light':
         appendix += '.litaug'
-    if args.drop:
-        appendix += '.drop'
     if args.softmax:
         appendix += '.softmax'
     if not args.offdecay:

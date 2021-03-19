@@ -18,16 +18,19 @@
 ## Train
 
     run train_mmwhs.py to start training
-    Example: python train_mmwhs.py -bs 16 -ns 1000 -e 400 -data_dir ../../input/ -d1 -d2 -d4 -offdecay -lr_fix 0.0002 -lr 0.0002 -d1lr 1e-04 -d2lr 5e-05 -d4lr 1e-04 -dr 1 -ft -extd4
+    Example: python train_mmwhs.py -bs 16 -ns 1000 -e 400 -data_dir ../../input/ -d1 -d2 -d4 -offdecay -lr_fix 0.0002 -lr 0.0002 -d1lr 1e-04 -d2lr 5e-05 -d4lr 1e-04 -dr 1 -ft -extd4 -softmax
 * After training, the model with the highest Dice Similarity Coefficient will be evaluated automatically.
-* To reproduce the result reported in the paper, please follow the following learning configuration:
+* To reproduce the result reported in the paper, please follow the following learning rate configuration:
 
 
-| D1            | D2            | D3    | Learning rate | &#955   |
-|:-------------:|:-------------:|:-----:|:-------------:|:-------------:|
-|:heavy_check_mark:| right-aligned | $1600 |
-| col 2 is          | centered      |   $12 |
-| zebra stripes     | are neat      |    $1 |
+| D1                | D2                 | D3               | &#955;<sub>D1</sub> | &#955;<sub>D2</sub>  | &#955;<sub>D3</sub>  | &#955;<sub>adv1</sub>  | &#955;<sub>adv2</sub>  | &#955;<sub>adv3</sub>  |
+|:-------------:    |:-------------:     |:-----:           |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+|:heavy_check_mark: |                    |                  |5e-05|     |       |2e-04
+|                   |:heavy_check_mark:  |                  |   |1e-05|     |   |1e-04
+|:heavy_check_mark: |:heavy_check_mark:  |                  |1.5e-04|1.5e-04|   |2e-04|2e-04
+|                   |                    |:heavy_check_mark:|   |   |1e-04|     |   |2e-04
+|                   |:heavy_check_mark:  |:heavy_check_mark:|   |1e-05|1e-05|   |2e-05|2e-05
+|:heavy_check_mark: |:heavy_check_mark:  |:heavy_check_mark:|1e-05|5e-05|5e-05|6e-05|6e-05|6e-05
 
 
 ## Evaluate
