@@ -178,12 +178,6 @@ class ImageProcessor:
 
     @staticmethod
     def crop_volume(vol, crop_size=112):
-
-        """
-        :param vol:
-        :return:
-        """
-
         return np.array(vol[:,
                         int(vol.shape[1] / 2) - crop_size: int(vol.shape[1] / 2) + crop_size,
                         int(vol.shape[2] / 2) - crop_size: int(vol.shape[2] / 2) + crop_size, ])

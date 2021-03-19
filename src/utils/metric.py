@@ -81,49 +81,35 @@ def evaluate(img_gt, img_pred, apply_hd=False, apply_asd=False):
     return res
 
 
-def metrics(img_gt, img_pred, ifhd=True, ifasd=True):
+def metrics2(img_gt, img_pred, apply_hd=False, apply_asd=False):
     """
-    Function to compute the metrics between two segmentation maps given as input.
-
-    img_gt: Array of the ground truth segmentation map.
-
-    img_pred: Array of the predicted segmentation map.
-    Return: A list of metrics in this order, [Dice endo, HD endo, ASD endo, Dice RV, HD RV, ASD RV, Dice MYO, HD MYO, ASD MYO]
+    evaluate the models on mmwhs data in batches
+    :param img_gt: the ground truth
+    :param img_pred: the prediction
+    :param apply_hd: whether to evaluate Hausdorff Distance
+    :param apply_asd: whether to evaluate Average Surface Distance
+    :return:
     """
-
     if img_gt.ndim != img_pred.ndim:
         raise ValueError("The arrays 'img_gt' and 'img_pred' should have the "
                          "same dimension, {} against {}".format(img_gt.ndim,
                                                                 img_pred.ndim))
+    res = {}
+    class_name = ["myo", "la", "lv", "aa"]
+    # Loop on each classes of the input images
+    for c, cls_name in zip([1, 2, 3, 4], class_name) :
 
-    res = []
-    cat = {500:'endo', 600:'rv', 200:'myo'}
-    for c in [500, 600, 200]:
-        # Copy the gt image to not alterate the input
-        gt_c_i = np.copy(img_gt)
-        gt_c_i[gt_c_i != c] = 0
+        gt_c_i = np.where(img_gt == c, 1, 0)
+        pred_c_i = np.where(img_pred == c, 1, 0)
 
-        # Copy the pred image to not alterate the input
-        pred_c_i = np.copy(img_pred)
-        pred_c_i[pred_c_i != c] = 0
-
-        # Clip the value to compute the volumes
-        gt_c_i = np.clip(gt_c_i, 0, 1)
-        pred_c_i = np.clip(pred_c_i, 0, 1)
         # Compute the Dice
         dice = dc(gt_c_i, pred_c_i)
-
-        h_d, a_sd = -1, -1
-        if ifhd or ifasd:
-            if np.sum(gt_c_i)==0 or np.sum(pred_c_i)==0:
-                dice = -1
-                h_d = -1
-                a_sd = -1
-            else:
-                h_d = hd(gt_c_i, pred_c_i) if ifhd else h_d
-                a_sd = asd(gt_c_i, pred_c_i) if ifasd else a_sd
-        res += [dice, h_d, a_sd]
-
+        h_d, a_sd = 0, 0
+        if apply_hd:
+            h_d = hd(gt_c_i, pred_c_i)
+        if apply_asd:
+            a_sd = asd (gt_c_i, pred_c_i)
+        res[cls_name] = [dice, h_d, a_sd]
     return res
 
 
@@ -136,6 +122,50 @@ def compute_metrics_on_files(gt, pred, ifhd=True, ifasd=True):
     :param ifasd: whether to calculate ASD
     :return:
     """
+
+    def metrics(img_gt, img_pred, ifhd=True, ifasd=True):
+        """
+        Function to compute the metrics between two segmentation maps given as input.
+
+        img_gt: Array of the ground truth segmentation map.
+
+        img_pred: Array of the predicted segmentation map.
+        Return: A list of metrics in this order, [Dice endo, HD endo, ASD endo, Dice RV, HD RV, ASD RV, Dice MYO, HD MYO, ASD MYO]
+        """
+
+        if img_gt.ndim != img_pred.ndim:
+            raise ValueError("The arrays 'img_gt' and 'img_pred' should have the "
+                             "same dimension, {} against {}".format(img_gt.ndim,
+                                                                    img_pred.ndim))
+        res = []
+        # cat = {500: 'endo', 600: 'rv', 200: 'myo'}
+        for c in [500, 600, 200]:
+            # Copy the gt image to not alterate the input
+            gt_c_i = np.copy(img_gt)
+            gt_c_i[gt_c_i != c] = 0
+
+            # Copy the pred image to not alterate the input
+            pred_c_i = np.copy(img_pred)
+            pred_c_i[pred_c_i != c] = 0
+
+            # Clip the value to compute the volumes
+            gt_c_i = np.clip(gt_c_i, 0, 1)
+            pred_c_i = np.clip(pred_c_i, 0, 1)
+            # Compute the Dice
+            dice = dc(gt_c_i, pred_c_i)
+
+            h_d, a_sd = -1, -1
+            if ifhd or ifasd:
+                if np.sum(gt_c_i) == 0 or np.sum(pred_c_i) == 0:
+                    dice = -1
+                    h_d = -1
+                    a_sd = -1
+                else:
+                    h_d = hd(gt_c_i, pred_c_i) if ifhd else h_d
+                    a_sd = asd(gt_c_i, pred_c_i) if ifasd else a_sd
+            res += [dice, h_d, a_sd]
+
+        return res
     res = metrics(gt, pred, ifhd=ifhd, ifasd=ifasd)
     res_str = ["{:.3f}".format(r) for r in res]
     formatting = "Endo {:>8} , {:>8} , {:>8} , RV {:>8} , {:>8} , {:>8} , Myo {:>8} , {:>8} , {:>8}"

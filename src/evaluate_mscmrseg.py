@@ -8,7 +8,7 @@ from tqdm import tqdm
 import os
 
 from utils.timer import timeit
-from utils.utils import load_nii, resize_volume, keep_largest_connected_components, to_categorical
+from utils.utils import load_nii, resize_volume, keep_largest_connected_components
 from utils.metric import compute_metrics_on_files
 from albumentations import (
     Compose,
@@ -17,7 +17,9 @@ from albumentations import (
 
 def crop_volume(vol, crop_size=112):
     """
-    :param vol:
+    crop the images
+    :param vol: the image
+    :param crop_size: half size of cropped images
     :return:
     """
     return np.array(vol[:,
@@ -27,7 +29,10 @@ def crop_volume(vol, crop_size=112):
 
 def reconstuct_volume(vol, crop_size=112, origin_size=256):
     """
-    :param vol:
+    reconstruct the image (reverse process of cropping)
+    :param vol: the images
+    :param crop_size: half size of cropped images
+    :param origin_size: the original size of the images
     :return:
     """
     recon_vol = np.zeros((len(vol), origin_size, origin_size, 4), dtype=np.float32)
@@ -40,7 +45,13 @@ def reconstuct_volume(vol, crop_size=112, origin_size=256):
 
 
 def read_img(pat_id, img_len, clahe=False):
-
+    """
+    read in raw images
+    :param pat_id:
+    :param img_len:
+    :param clahe: whether to apply clahe (False)
+    :return:
+    """
     images = []
     for im in range(img_len):
         img = cv2.imread(os.path.join(args.data_dir, "processed/trainB/pat_{}_lge_{}.png".format(pat_id, im)))
@@ -53,6 +64,12 @@ def read_img(pat_id, img_len, clahe=False):
 
 
 def get_csv_path(model_name, clahe=False):
+    """
+    generate csv path to save the result
+    :param model_name:
+    :param clahe:
+    :return:
+    """
     csv_path = model_name
     if clahe:
         csv_path += '_clahe'

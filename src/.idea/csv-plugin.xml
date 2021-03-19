@@ -10,6 +10,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\predict_output_tf.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\train_mmwhs.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\train_pointnet_imgaug.py">
           <value>
             <Attribute>

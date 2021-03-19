@@ -390,10 +390,10 @@ def print_epoch_result(train_result, valid_result, epoch, max_epochs):
 
 @timeit
 def main(batch_size=24, n_samples=1000, n_epochs=200):
-    ids_train = ImageProcessor.split_data("./../input_aug/aug_trainA.csv")
-    ids_valid = ImageProcessor.split_data("./../input_aug/testA.csv")
-    ids_train_lge = ImageProcessor.split_data('./../input_aug/aug_trainB.csv')
-    ids_valid_lge = ImageProcessor.split_data('./../input_aug/testB.csv')
+    ids_train = ImageProcessor.split_data(os.path.join(args.data_dir, "aug_trainA.csv"))
+    ids_valid = ImageProcessor.split_data(os.path.join(args.data_dir, "testA.csv"))
+    ids_train_lge = ImageProcessor.split_data(os.path.join(args.data_dir, 'aug_trainB.csv'))
+    ids_valid_lge = ImageProcessor.split_data(os.path.join(args.data_dir, 'testB.csv'))
     print("Trainining on {} trainA, {} trainB, validating on {} testA and {} testB samples...!!".format(len(ids_train),
                                                                                                         len(
                                                                                                             ids_train_lge),
@@ -692,7 +692,7 @@ if __name__ == '__main__':
     parser.add_argument("-d4lr", help="the learning rate for pointnet discriminator", type=float, default=2.5e-5)
     parser.add_argument("-dr", help="the ratio of the discriminators loss for the unet", type=float, default=.01)
     parser.add_argument("-wp", help="the weight for the loss of the point net ", type=float, default=1.)
-    parser.add_argument("-data_dir", help="the directory to the data", type=str, default='./../input_aug/')
+    parser.add_argument("-data_dir", help="the directory to the data", type=str, default='../../project_cross_modality/Working_Model/input_aug/')
 
     args = parser.parse_args()
 
