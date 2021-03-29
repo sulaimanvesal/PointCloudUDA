@@ -47,7 +47,7 @@ cd PointCloudUDA
 ---
 ## Citations
 Please consider citing the following papers in your publications if they help your research.
-```
+```bibtex
 @ARTICLE{9380742,
   author={S. {Vesal} and M. {Gu} and R. {Kosti} and A. {Maier} and N. {Ravikumar}},
   journal={IEEE Transactions on Medical Imaging}, 
@@ -57,7 +57,8 @@ Please consider citing the following papers in your publications if they help yo
   number={},
   pages={1-1},
   doi={10.1109/TMI.2021.3066683}}
-  
+
+bibtex 
 @misc{vesal2021adapt,
   title={Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation}, 
   author={Sulaiman Vesal and Mingxuan Gu and Ronak Kosti and Andreas Maier and Nishant Ravikumar},
