@@ -1,4 +1,12 @@
-# Adapt Everywhere
+<div align="center">
+
+# Adapt Everywhere: Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac Image Segmentation
+
+[![Paper](https://img.shields.io/badge/arXiv-2011.11390-brightgreen)](https://arxiv.org/abs/2103.08219)
+[![journal](https://img.shields.io/badge/Journal-IEEE--TMI-blue)](https://ieeexplore.ieee.org/document/9380742)
+[![Project-Page](https://img.shields.io/badge/-Project%20Page-green)](https://sulaimanvesal.github.io/PointCloudUDA_web/)
+
+</div>
 
 Pytorch implementation of our method for IEEE-TMI paper: "Unsupervised Adaptation of Point-Clouds and Entropy Minimisation for Multi-modal Cardiac-MR Segmentation". 
 
