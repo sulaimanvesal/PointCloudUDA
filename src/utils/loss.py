@@ -1,15 +1,19 @@
 import torch
 import torch.nn.functional as F
+from torch import nn
+from torch.autograd import Variable
 
 
-def jaccard_loss(true, logits, eps=1e-7, activation=True):
+def jaccard_loss(true, logits, eps=1e-7):
     """
     Computes the Jaccard loss, a.k.a the IoU loss.
-    :param true: a tensor of shape [B, H, W] or [B, C, H, W] or [B, 1, H, W].
-    :param logits: a tensor of shape [B, C, H, W]. Corresponds to the raw output or logits of the model.
-    :param eps: added to the denominator for numerical stability.
-    :param activation: if apply the activation function before calculating the loss.
-    :return: the Jaccard loss.
+    Args:
+        true: the ground truth of shape [B, H, W] or [B, 1, H, W]
+        logits: the output of the segmentation model (without softmax) [B, C, H, W]
+        eps:
+
+    Returns:
+    The Jaccard loss
     """
     num_classes = logits.shape[1]
     if num_classes == 1:
@@ -22,19 +26,35 @@ def jaccard_loss(true, logits, eps=1e-7, activation=True):
         neg_prob = 1 - pos_prob
         probas = torch.cat([pos_prob, neg_prob], dim=1)
     else:
-        probas = F.softmax(logits, dim=1) if activation else logits
-
-    true_1_hot = true.type(probas.type())
+        true_1_hot = torch.eye(num_classes)[true.long().cuda().squeeze(1)]
+        true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()  # B, C, H, W
+        probas = F.softmax(logits, dim=1)
+    true_1_hot = true_1_hot.type(logits.type())
     dims = (0,) + tuple(range(2, true.ndimension()))
-    probas = probas.contiguous()
-    true_1_hot = true_1_hot.contiguous()
-    intersection = probas * true_1_hot
-    intersection = torch.sum(intersection, dims)
-    cardinality = probas + true_1_hot
-    cardinality = torch.sum(cardinality, dims)
+    intersection = torch.sum(probas * true_1_hot, dims)
+    cardinality = torch.sum(probas + true_1_hot, dims)
     union = cardinality - intersection
     jacc_loss = (intersection / (union + eps)).mean()
     return 1 - jacc_loss
+
+
+def loss_calc(pred, label, gpu=0, jaccard=False):
+    """
+    This function returns cross entropy loss plus jaccard loss for semantic segmentation
+    Args:
+        pred: the logits of the prediction with shape [B, C, H, W]
+        label: the ground truth with shape [B, H, W]
+        gpu: the gpu number
+        jaccard: if apply jaccard loss
+
+    Returns:
+
+    """
+    criterion = nn.CrossEntropyLoss().cuda(gpu)
+    loss = criterion(pred, label.long().cuda())
+    if jaccard:
+        loss = loss + jaccard_loss(true=label.long().cuda(), logits=pred)
+    return loss
 
 
 def batch_NN_loss(x, y):

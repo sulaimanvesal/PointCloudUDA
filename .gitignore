@@ -1,0 +1,6 @@
+
+*.sh
+*.pyc
+*.out
+src/runs/*
+weights/*

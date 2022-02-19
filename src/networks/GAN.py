@@ -19,7 +19,6 @@ class Discriminator(nn.Module):
         # self.sigmoid = nn.Sigmoid()
         self._initialize_weights()
 
-
     def _initialize_weights(self):
 
         for m in self.modules():
@@ -38,7 +37,6 @@ class Discriminator(nn.Module):
                 if m.bias is not None:
                     # m.bias.data.copy_(1.0)
                     m.bias.data.zero_()
-
 
     def forward(self, x):
 
@@ -65,14 +63,12 @@ class OutputDiscriminator(nn.Module):
         if init:
             self._initialize_weights()
 
-
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 m.weight.data.normal_(0.0, 0.02)
                 if m.bias is not None:
                     m.bias.data.zero_()
-
 
     def forward(self, x):
         x = self.upsample(x)
@@ -94,22 +90,21 @@ class UncertaintyDiscriminator(nn.Module):
         # self._sigmoid = sigmoid
         filter_num_list = [64, 128, 256, 512, 1]
 
-        self.conv1 = nn.Conv2d(in_channel, filter_num_list[0], kernel_size=4, stride=2, padding=2, bias=False)
-        self.conv2 = nn.Conv2d(filter_num_list[0], filter_num_list[1], kernel_size=4, stride=2, padding=2, bias=False)
-        self.conv3 = nn.Conv2d(filter_num_list[1], filter_num_list[2], kernel_size=4, stride=2, padding=2, bias=False)
-        self.conv4 = nn.Conv2d(filter_num_list[2], filter_num_list[3], kernel_size=4, stride=2, padding=2, bias=False)
+        self.conv1 = nn.Conv2d(in_channel, filter_num_list[0], kernel_size=(4, 4), stride=(2, 2), padding=2, bias=False)
+        self.conv2 = nn.Conv2d(filter_num_list[0], filter_num_list[1], kernel_size=(4, 4), stride=(2, 2), padding=2, bias=False)
+        self.conv3 = nn.Conv2d(filter_num_list[1], filter_num_list[2], kernel_size=(4, 4), stride=(2, 2), padding=2, bias=False)
+        self.conv4 = nn.Conv2d(filter_num_list[2], filter_num_list[3], kernel_size=(4, 4), stride=(2, 2), padding=2, bias=False)
         if ext:
-            self.conv4_2 = nn.Conv2d(filter_num_list[3], 1024, kernel_size=3, stride=2, padding=1, bias=False)
-            self.conv4_3 = nn.Conv2d(1024, filter_num_list[2], kernel_size=3, stride=2, padding=1, bias=False)
-            self.conv5 = nn.Conv2d(filter_num_list[2], filter_num_list[4], kernel_size=4, stride=2, padding=2,
+            self.conv4_2 = nn.Conv2d(filter_num_list[3], 1024, kernel_size=(3, 3), stride=(2, 2), padding=1, bias=False)
+            self.conv4_3 = nn.Conv2d(1024, filter_num_list[2], kernel_size=(3, 3), stride=(2, 2), padding=1, bias=False)
+            self.conv5 = nn.Conv2d(filter_num_list[2], filter_num_list[4], kernel_size=(4, 4), stride=(2, 2), padding=2,
                                    bias=False)
         else:
-            self.conv5 = nn.Conv2d(filter_num_list[3], filter_num_list[4], kernel_size=4, stride=2, padding=2, bias=False)
+            self.conv5 = nn.Conv2d(filter_num_list[3], filter_num_list[4], kernel_size=(4, 4), stride=(2, 2), padding=2, bias=False)
         self.leakyrelu = nn.LeakyReLU(negative_slope=0.2)
         self._ext = ext
         # self.sigmoid = nn.Sigmoid()
         self._initialize_weights(heinit=heinit)
-
 
     def _initialize_weights(self, heinit=False):
         if heinit:
@@ -127,21 +122,20 @@ class UncertaintyDiscriminator(nn.Module):
                     if m.bias is not None:
                         m.bias.data.zero_()
 
-
     def forward(self, x):
         # if self._softmax:
         #     x = F.softmax(x, dim=1)
         # elif self._sigmoid:
         #     x = F.sigmoid(x)
-        x = self.leakyrelu(self.conv1(x))
-        x = self.leakyrelu(self.conv2(x))
-        x = self.leakyrelu(self.conv3(x))
-        x = self.leakyrelu(self.conv4(x))
+        output = self.leakyrelu(self.conv1(x))
+        output = self.leakyrelu(self.conv2(output))
+        output = self.leakyrelu(self.conv3(output))
+        output = self.leakyrelu(self.conv4(output))
         if self._ext:
-            x = self.leakyrelu(self.conv4_2(x))
-            x = self.leakyrelu(self.conv4_3(x))
-        x = self.conv5(x)
-        return x
+            output = self.leakyrelu(self.conv4_2(output))
+            output = self.leakyrelu(self.conv4_3(output))
+        output = self.conv5(output)
+        return output
 
 
 class BoundaryDiscriminator(nn.Module):
@@ -159,14 +153,12 @@ class BoundaryDiscriminator(nn.Module):
         # self.sigmoid = nn.Sigmoid()
         self._initialize_weights()
 
-
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 m.weight.data.normal_(0.0, 0.02)
                 if m.bias is not None:
                     m.bias.data.zero_()
-
 
     def forward(self, x):
         x = self.leakyrelu(self.conv1(x))
@@ -175,6 +167,7 @@ class BoundaryDiscriminator(nn.Module):
         x = self.leakyrelu(self.conv4(x))
         x = self.conv5(x)
         return x
+
 
 class BoundaryEntDiscriminator(nn.Module):
     def __init__(self, ):
@@ -191,14 +184,12 @@ class BoundaryEntDiscriminator(nn.Module):
         # self.sigmoid = nn.Sigmoid()
         self._initialize_weights()
 
-
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 m.weight.data.normal_(0.0, 0.02)
                 if m.bias is not None:
                     m.bias.data.zero_()
-
 
     def forward(self, x):
         x = self.leakyrelu(self.conv1(x))
@@ -207,6 +198,7 @@ class BoundaryEntDiscriminator(nn.Module):
         x = self.leakyrelu(self.conv4(x))
         x = self.conv5(x)
         return x
+
 
 if __name__ == '__main__':
     model_dis = UncertaintyDiscriminator(in_channel=2).cuda()

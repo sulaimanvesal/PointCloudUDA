@@ -96,7 +96,6 @@ class PointNet(nn.Module):
         return x # [8, 300, 3]
 
 
-
 class Decoder(nn.Module):
     def __init__(self, filters=32, n_block=4, kernel_size=(3, 3), batch_norm=True, padding='same', drop=False):
         super().__init__()
@@ -218,8 +217,8 @@ class Segmentation_model_Point(nn.Module):
         output_pointNet = None
         if self._pointnet:
             output_pointNet = self.pointNet(output_bottleneck)
-        output = self.decoder(output_bottleneck, skip)
-        output = self.classifier(output)
+        output_decoder = self.decoder(output_bottleneck, skip)
+        output = self.classifier(output_decoder)
         if self._multicuda:
             output = output.to(self._cuda0)
         if print_shape:
