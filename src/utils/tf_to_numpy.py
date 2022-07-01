@@ -36,6 +36,7 @@ def read_tf(tfrecord_path):
         image_raw2 = np.expand_dims(image_raw2.reshape((256, 256, 3))[..., 0], -1)
         return image_raw1, image_raw2
 
+
 def tf_to_numpy(tf_path='../../input/'):
     """
     convert tensor to numpy array and save it
@@ -61,6 +62,7 @@ def tf_to_numpy(tf_path='../../input/'):
                 np.save(os.path.join(folder_tosave, 'img', id), img)
                 np.save(os.path.join(folder_tosave, 'mask', id), mask)
         print('**************** {} finished ****************'.format(data_name))
+
 
 if __name__ == '__main__':
     # tf_to_numpy()
