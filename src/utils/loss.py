@@ -25,7 +25,7 @@ def jaccard_loss(true, logits, eps=1e-7, activation=True):
         probas = F.softmax(logits, dim=1) if activation else logits
 
     true_1_hot = true.type(probas.type())
-    dims = (0,) + tuple(range(2, true.ndimension()))
+    dims = (0,) + tuple(range(2, true_1_hot.ndimension()))
     probas = probas.contiguous()
     true_1_hot = true_1_hot.contiguous()
     intersection = probas * true_1_hot
