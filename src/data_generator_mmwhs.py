@@ -72,16 +72,14 @@ def augmentation(image, mask=None):
         random_order=True
     )
     if mask is None:
-        image_heavy = seq(images=image)
-        return image_heavy
+        return seq(images=image)
+    if image.ndim == 4:
+        mask = np.array(mask)
+        image_heavy,mask_heavy = seq(images=image, segmentation_maps=mask.astype(np.int32))
     else:
-        if image.ndim == 4:
-            mask = np.array(mask)
-            image_heavy,mask_heavy = seq(images=image, segmentation_maps=mask.astype(np.int32))
-        else:
-            image_heavy,mask_heavy = seq(images=image[np.newaxis,...], segmentation_maps=mask[np.newaxis,...])
-            image_heavy,mask_heavy = image_heavy[0], mask_heavy[0]
-        return image_heavy,mask_heavy
+        image_heavy,mask_heavy = seq(images=image[np.newaxis,...], segmentation_maps=mask[np.newaxis,...])
+        image_heavy,mask_heavy = image_heavy[0], mask_heavy[0]
+    return image_heavy,mask_heavy
 
 
 def light_aug(images, masks=None, segmap=False):
@@ -104,22 +102,22 @@ def light_aug(images, masks=None, segmap=False):
         random_order=True
     )
     if masks is None:
-        image_light = seq(images=images)
-        return image_light
-    else:
-        if segmap:
-            segmaps = []
-            for mask in masks:
-                segmaps.append(SegmentationMapsOnImage(mask.astype(np.int32), shape=images.shape[-3:]))
-        else:
-            segmaps = np.array(masks, dtype=np.int32)
-        image_light,masks = seq(images=images, segmentation_maps=segmaps)
-        if segmap:
-            mask_light = []
-            for mask in masks:
-                mask_light.append(mask.get_arr())
-            masks = np.array(mask_light)
-        return image_light, masks
+        return seq(images=images)
+    segmaps = (
+        [
+            SegmentationMapsOnImage(
+                mask.astype(np.int32), shape=images.shape[-3:]
+            )
+            for mask in masks
+        ]
+        if segmap
+        else np.array(masks, dtype=np.int32)
+    )
+    image_light,masks = seq(images=images, segmentation_maps=segmaps)
+    if segmap:
+        mask_light = [mask.get_arr() for mask in masks]
+        masks = np.array(mask_light)
+    return image_light, masks
 
 
 class ImageProcessor:
@@ -127,8 +125,7 @@ class ImageProcessor:
     @staticmethod
     def split_data(img_path):
         df_train = pd.read_csv(img_path)
-        ids_train = df_train['img']
-        return ids_train
+        return df_train['img']
 
     @staticmethod
     def crop_volume(vol, crop_size=112):
@@ -150,9 +147,9 @@ class DataGenerator_PointNet:
                  ifvert=False,
                  segmap=False,
                  data_dir='../input/PnpAda_release_data/'):
-        assert phase == "train" or phase == "valid", r"phase has to be either'train' or 'valid'"
-        assert source == "source" or source == "target"
-        assert aug == '' or aug == 'heavy' or aug == 'light'
+        assert phase in ["train", "valid"], r"phase has to be either'train' or 'valid'"
+        assert source in ["source", "target"]
+        assert aug in ['', 'heavy', 'light']
         self._data = df
         self._len = len(df)
         self._shuffle_indices = np.arange(len(df))
@@ -165,10 +162,7 @@ class DataGenerator_PointNet:
         self._batch_size = batch_size
         self._index = 0
         self._totalcount = 0
-        if n_samples == -1:
-            self._n_samples = len(df)
-        else:
-            self._n_samples = n_samples
+        self._n_samples = len(df) if n_samples == -1 else n_samples
         self._toprint = toprint
 
         self._match_hist = match_hist
@@ -184,30 +178,53 @@ class DataGenerator_PointNet:
     def get_image_paths(self, id):
         if self._source == "source":
             if self._phase == "train":
-                img_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_train/img/{}.npy'.format(id))
-                mask_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_train/mask/{}.npy'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_train/vertices/{}.npy'.format(id))
+                img_path = os.path.join(
+                    self._data_dir, f'PnpAda_release_data/mr_train/img/{id}.npy'
+                )
+                mask_path = os.path.join(
+                    self._data_dir, f'PnpAda_release_data/mr_train/mask/{id}.npy'
+                )
+                vertex_path = os.path.join(
+                    self._data_dir,
+                    f'PnpAda_release_data/mr_train/vertices/{id}.npy',
+                )
             else:
-                img_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_val/img/{}.npy'.format(id))
-                mask_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_val/mask/{}.npy'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'PnpAda_release_data/mr_val/vertices/{}.npy'.format(id))
+                img_path = os.path.join(
+                    self._data_dir, f'PnpAda_release_data/mr_val/img/{id}.npy'
+                )
+                mask_path = os.path.join(
+                    self._data_dir, f'PnpAda_release_data/mr_val/mask/{id}.npy'
+                )
+                vertex_path = os.path.join(
+                    self._data_dir, f'PnpAda_release_data/mr_val/vertices/{id}.npy'
+                )
+        elif self._phase == "train":
+            img_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_train/img/{id}.npy'
+            )
+            mask_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_train/mask/{id}.npy'
+            )
+            vertex_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_train/vertices/{id}.npy'
+            )
         else:
-            if self._phase == "train":
-                img_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_train/img/{}.npy'.format(id))
-                mask_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_train/mask/{}.npy'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_train/vertices/{}.npy'.format(id))
-            else:
-                img_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_val/img/{}.npy'.format(id))
-                mask_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_val/mask/{}.npy'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'PnpAda_release_data/ct_val/vertices/{}.npy'.format(id))
+            img_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_val/img/{id}.npy'
+            )
+            mask_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_val/mask/{id}.npy'
+            )
+            vertex_path = os.path.join(
+                self._data_dir, f'PnpAda_release_data/ct_val/vertices/{id}.npy'
+            )
         return img_path, mask_path, vertex_path
 
     def get_images_masks(self, img_path, mask_path, vertex_path):
         img, mask = np.load(img_path), np.array(np.load(mask_path), dtype=int)
-        if self._vert:
-            if not ((self._aug == 'heavy') or (self._aug == 'light')):
-                vertex = np.load(vertex_path)
-                return img, mask, vertex
+        if self._vert and self._aug not in ['heavy', 'light']:
+            vertex = np.load(vertex_path)
+            return img, mask, vertex
         return img, mask, None
 
     def __iter__(self):
@@ -221,11 +238,11 @@ class DataGenerator_PointNet:
         if self._totalcount >= self._n_samples:
             self._totalcount = 0
             raise StopIteration
-        for i in range(self._batch_size):
+        for _ in range(self._batch_size):
             indices.append(self._index)
             self._index += 1
             self._totalcount += 1
-            self._index = self._index % self._len
+            self._index %= self._len
             if self._totalcount >= self._n_samples:
                 break
         ids_train_batch = self._data.iloc[self._shuffle_indices[indices]]
@@ -242,15 +259,16 @@ class DataGenerator_PointNet:
             masks.append(mask)
             verts.append(vertex)
         images = np.array(images)
-        if self._aug == 'heavy' or self._aug == 'light':
+        if self._aug in ['heavy', 'light']:
             img_min = images.min()
             img_max = images.max()
             images = (images - img_min) * 255. / (img_max - img_min)
             images = np.array(images, dtype=np.uint8)
-            if self._aug == 'heavy':
-                images, masks = augmentation(images, masks)
-            else:
-                images, masks = light_aug(images, masks, segmap=self._segmap)
+            images, masks = (
+                augmentation(images, masks)
+                if self._aug == 'heavy'
+                else light_aug(images, masks, segmap=self._segmap)
+            )
             images = img_min + images.astype(np.float32) * (img_max - img_min) / 255.
             masks = np.array(masks)
             if self._vert:
@@ -274,5 +292,3 @@ class DataGenerator_PointNet:
         return images, masks, verts
 
 
-if __name__ == "__main__":
-    pass

@@ -1,7 +1,7 @@
 import kornia
 dic_loss = kornia.losses.DiceLoss()
 import torch
-print("torrch version: {}".format(torch.__version__))
+print(f"torrch version: {torch.__version__}")
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 
@@ -89,8 +89,7 @@ def valid_model_with_one_dataset(seg_model, data_generator, hd=False):
             dice_list.append((result["lv"][0] + result["myo"][0] + result["la"][0] + result['aa'][0]) / 4.)
             if hd:
                 hd_list.append((result["lv"][1] + result["myo"][1] + result["la"][1] + result['aa'][1]) / 4.)
-    output = {}
-    output["dice"] = np.mean(np.array(dice_list))
+    output = {"dice": np.mean(np.array(dice_list))}
     output["loss"] = np.mean(np.array(loss_list))
     output["vert_loss"] = np.mean(np.array(vert_loss_list))
 
@@ -109,7 +108,6 @@ def valid_model(seg_model, validA_iterator, validB_iterator, testB_generator):
     :param testB_generator: taret test set
     :return: the result dictionary
     """
-    valid_result = {}
     seg_model.eval()
 
     print("start to valid")
@@ -129,16 +127,16 @@ def valid_model(seg_model, validA_iterator, validB_iterator, testB_generator):
     test_lge_dice = output['dice']
     test_lge_loss = output['loss']
 
-    valid_result["val_dice"] = val_dice
-    valid_result['val_loss'] = val_loss
-    valid_result['val_vert_loss'] = val_vert_loss
-    valid_result['val_lge_dice'] = val_lge_dice
-    valid_result['val_lge_loss'] = val_lge_loss
-    valid_result['val_lge_vert_loss'] = val_lge_vert_loss
-    valid_result['test_lge_dice'] = test_lge_dice
-    valid_result['test_lge_loss'] = test_lge_loss
-
-    return valid_result
+    return {
+        "val_dice": val_dice,
+        'val_loss': val_loss,
+        'val_vert_loss': val_vert_loss,
+        'val_lge_dice': val_lge_dice,
+        'val_lge_loss': val_lge_loss,
+        'val_lge_vert_loss': val_lge_vert_loss,
+        'test_lge_dice': test_lge_dice,
+        'test_lge_loss': test_lge_loss,
+    }
 
 
 @timeit

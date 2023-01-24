@@ -12,11 +12,7 @@ def timeit(func):
 
 @timeit
 def somefunc():
-    # some function to test 'timeit'
-    result = 1
-    for i in range(1, 100000):
-        result += i
-    return result
+    return 1 + sum(range(1, 100000))
 
 
 
@@ -28,7 +24,7 @@ class TimeChecker:
         """
         self._max_time_duration = 3600 * max_hours + 60 * max_minutes + max_seconds
         assert self._max_time_duration > 0, 'max time duration should be greater than 0'
-        print('max time duration: {}'.format(self._max_time_duration))
+        print(f'max time duration: {self._max_time_duration}')
         self._time_per_iter = 0
         self._check = None
 
@@ -51,23 +47,23 @@ class TimeChecker:
             tobreak = (((now - self._start_time).seconds + self._time_per_iter) > self._max_time_duration)
             self._check = now
             if toprint or tobreak:
-                print('time elapsed from start: {}'.format(now - self._start_time))
+                print(f'time elapsed from start: {now - self._start_time}')
             return tobreak
 
 
 if __name__ == '__main__':
     import time
     start = datetime.now()
-    print("start: {}".format(start))
+    print(f"start: {start}")
     # print(somefunc())
     time.sleep(3)
     end = datetime.now()
-    print("end: {}".format(end))
+    print(f"end: {end}")
     duration = end - start
     print(type(duration))
-    print("duration: {}".format(duration))
-    print("microseconds: {}".format(duration.microseconds))
-    print("days: {}".format(duration.days))
+    print(f"duration: {duration}")
+    print(f"microseconds: {duration.microseconds}")
+    print(f"days: {duration.days}")
     print(duration.resolution)
     print(duration.seconds)
     print(type(duration.seconds))

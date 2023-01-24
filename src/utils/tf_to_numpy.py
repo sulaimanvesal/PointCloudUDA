@@ -44,9 +44,9 @@ def tf_to_numpy(tf_path='../../input/'):
     :return:
     """
     for data_name in ["ct_train", "ct_val", "mr_train", "mr_val"]:
-        df_train = pd.read_csv(os.path.join(tf_path, '{}_list.csv'.format(data_name)))
+        df_train = pd.read_csv(os.path.join(tf_path, f'{data_name}_list.csv'))
         ids_train = df_train['img']
-        folder_tosave = os.path.join(tf_path, 'PnpAda_release_data/{}/'.format(data_name))
+        folder_tosave = os.path.join(tf_path, f'PnpAda_release_data/{data_name}/')
         if not os.path.exists(folder_tosave):
             os.mkdir(folder_tosave)
             if not os.path.exists(os.path.join(folder_tosave, 'img')):
@@ -57,17 +57,19 @@ def tf_to_numpy(tf_path='../../input/'):
             if i % 100 == 0:
                 print(id)
             if not os.path.exists(os.path.join(folder_tosave, 'img', id)):
-                img_path = '../../input/PnpAda_release_data/train_n_val/{}_tfs/{}'.format(data_name, id)
+                img_path = f'../../input/PnpAda_release_data/train_n_val/{data_name}_tfs/{id}'
                 img, mask = read_tf(img_path)
                 np.save(os.path.join(folder_tosave, 'img', id), img)
                 np.save(os.path.join(folder_tosave, 'mask', id), mask)
-        print('**************** {} finished ****************'.format(data_name))
+        print(f'**************** {data_name} finished ****************')
 
 
 if __name__ == '__main__':
     # tf_to_numpy()
     # print("################ all the processes finished ################")
-    img, mask = read_tf('../../input/PnpAda_release_data/train_n_val/ct_train_tfs/ct_train_slice{}.tfrecords'.format(0))
+    img, mask = read_tf(
+        '../../input/PnpAda_release_data/train_n_val/ct_train_tfs/ct_train_slice0.tfrecords'
+    )
     print(img.shape, mask.shape)
     print(np.mean(img), np.std(img))
     print(img.min(), img.max())
@@ -80,7 +82,9 @@ if __name__ == '__main__':
     plt.imshow(mask[128-112:128+112,128-112:128+112,0], cmap='gray')
     plt.show()
 
-    img, mask = read_tf('../../input/PnpAda_release_data/train_n_val/ct_val_tfs/ct_val_slice{}.tfrecords'.format(1))
+    img, mask = read_tf(
+        '../../input/PnpAda_release_data/train_n_val/ct_val_tfs/ct_val_slice1.tfrecords'
+    )
     print(img.shape, mask.shape)
     print(np.mean(img), np.std(img))
     print(img.min(), img.max())
