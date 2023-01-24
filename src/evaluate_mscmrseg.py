@@ -54,7 +54,11 @@ def read_img(pat_id, img_len, clahe=False):
     """
     images = []
     for im in range(img_len):
-        img = cv2.imread(os.path.join(args.data_dir, "processed/trainB/pat_{}_lge_{}.png".format(pat_id, im)))
+        img = cv2.imread(
+            os.path.join(
+                args.data_dir, f"processed/trainB/pat_{pat_id}_lge_{im}.png"
+            )
+        )
         if clahe:
             aug = Compose([CLAHE(always_apply=True)])
             augmented = aug(image=img)
@@ -120,8 +124,11 @@ def evaluate_segmentation(unet_model, bs=8, clahe=False, save=False, toprint=Tru
         endo_hd,myo_hd,rv_hd = [],[],[]
         endo_asd,myo_asd,rv_asd, = [],[],[]
     for pat_id in tqdm(range(pat_id_range[0], pat_id_range[1])):
-        print("patient {}".format(pat_id))
-        mask_path = os.path.join(args.data_dir, "raw_data/labels/lge_test_gt/patient{}_LGE_manual.nii.gz".format(pat_id))
+        print(f"patient {pat_id}")
+        mask_path = os.path.join(
+            args.data_dir,
+            f"raw_data/labels/lge_test_gt/patient{pat_id}_LGE_manual.nii.gz",
+        )
 
         nimg, affine, header = load_nii(mask_path)
         vol_resize = read_img(pat_id, nimg.shape[2], clahe=clahe)
@@ -138,9 +145,10 @@ def evaluate_segmentation(unet_model, bs=8, clahe=False, save=False, toprint=Tru
         pred = np.concatenate(pred, axis=0)
         pred = np.moveaxis(pred, 1, -1)
         pred = reconstuct_volume(pred, crop_size=112)
-        pred_resize = []
-        for i in range(0, 4):
-            pred_resize.append(resize_volume(pred[:, :, :, i], w=nimg.shape[0], h=nimg.shape[1]))
+        pred_resize = [
+            resize_volume(pred[:, :, :, i], w=nimg.shape[0], h=nimg.shape[1])
+            for i in range(4)
+        ]
         pred = np.stack(np.array(pred_resize), axis=3)
         pred = np.argmax(pred, axis=3)
 
@@ -201,7 +209,9 @@ def evaluate_segmentation(unet_model, bs=8, clahe=False, save=False, toprint=Tru
         std_rv_dc = np.around(np.std(np.array(rv_dc)), 3)
         std_myo_dc = np.around(np.std(np.array(myo_dc)), 3)
 
-        print("Ave endo DC: {}, {}, Ave rv DC: {}, {}, Ave myo DC: {}, {}".format(mean_endo_dc, std_endo_dc, mean_rv_dc, std_rv_dc, mean_myo_dc, std_myo_dc))
+        print(
+            f"Ave endo DC: {mean_endo_dc}, {std_endo_dc}, Ave rv DC: {mean_rv_dc}, {std_rv_dc}, Ave myo DC: {mean_myo_dc}, {std_myo_dc}"
+        )
         print("Ave Dice: {:.3f}, {:.3f}".format((mean_endo_dc + mean_rv_dc + mean_myo_dc) / 3., (std_endo_dc + std_rv_dc + std_myo_dc) / 3.))
         if ifhd:
             mean_endo_hd = np.around(np.mean(np.array(endo_hd)), 3)
@@ -210,7 +220,9 @@ def evaluate_segmentation(unet_model, bs=8, clahe=False, save=False, toprint=Tru
             std_endo_hd = np.around(np.std(np.array(endo_hd)), 3)
             std_rv_hd = np.around(np.std(np.array(rv_hd)), 3)
             std_myo_hd = np.around(np.std(np.array(myo_hd)), 3)
-            print("Ave endo HD: {}, {}, Ave rv HD: {}, {}, Ave myo HD: {}, {}".format(mean_endo_hd, std_endo_hd, mean_rv_hd, std_rv_hd, mean_myo_hd, std_myo_hd))
+            print(
+                f"Ave endo HD: {mean_endo_hd}, {std_endo_hd}, Ave rv HD: {mean_rv_hd}, {std_rv_hd}, Ave myo HD: {mean_myo_hd}, {std_myo_hd}"
+            )
             print("Ave HD: {:.3f}, {:.3f}".format((mean_endo_hd + mean_rv_hd + mean_myo_hd) / 3., (std_endo_hd + std_rv_hd + std_myo_hd) / 3.))
         if ifasd:
             mean_endo_asd = np.around(np.mean(np.array(endo_asd)), 3)
@@ -219,14 +231,22 @@ def evaluate_segmentation(unet_model, bs=8, clahe=False, save=False, toprint=Tru
             std_endo_asd = np.around(np.std(np.array(endo_asd)), 3)
             std_rv_asd = np.around(np.std(np.array(rv_asd)), 3)
             std_myo_asd = np.around(np.std(np.array(myo_asd)), 3)
-            print("Ave endo ASD: {}, {}, Ave rv ASD: {}, {}, Ave myo ASD: {}, {}".format(mean_endo_asd, std_endo_asd, mean_rv_asd, std_rv_asd, mean_myo_asd, std_myo_asd))
+            print(
+                f"Ave endo ASD: {mean_endo_asd}, {std_endo_asd}, Ave rv ASD: {mean_rv_asd}, {std_rv_asd}, Ave myo ASD: {mean_myo_asd}, {std_myo_asd}"
+            )
             print("Ave ASD: {:.3f}, {:.3f}".format((mean_endo_asd + mean_rv_asd + mean_myo_asd) / 3., (std_endo_asd + std_rv_asd + std_myo_asd) / 3.))
 
-        print('{}, {}, {}, {}, {}, {}'.format(mean_myo_dc, std_myo_dc, mean_endo_dc, std_endo_dc, mean_rv_dc, std_rv_dc))
+        print(
+            f'{mean_myo_dc}, {std_myo_dc}, {mean_endo_dc}, {std_endo_dc}, {mean_rv_dc}, {std_rv_dc}'
+        )
         if ifhd:
-            print('{}, {}, {}, {}, {}, {}'.format(mean_myo_hd, std_myo_hd, mean_endo_hd, std_endo_hd, mean_rv_hd, std_rv_hd))
+            print(
+                f'{mean_myo_hd}, {std_myo_hd}, {mean_endo_hd}, {std_endo_hd}, {mean_rv_hd}, {std_rv_hd}'
+            )
         if ifasd:
-            print('{}, {}, {}, {}, {}, {}'.format(mean_myo_asd, std_myo_asd, mean_endo_asd, std_endo_asd, mean_rv_asd, std_rv_asd))
+            print(
+                f'{mean_myo_asd}, {std_myo_asd}, {mean_endo_asd}, {std_endo_asd}, {mean_rv_asd}, {std_rv_asd}'
+            )
 
     print('Evaluation finished')
 
@@ -256,7 +276,9 @@ if __name__ == '__main__':
                        "unet_d1d2d4_aug2": "best_unet_model_checkpoint_train_point_imgaug.resnet.lr0.001.d1lr2.5e-05.d2lr2.5e-05.d4lr2.5e-05.aug2.softmax.Scr0.822.pt"}
 
         print("evaluate model: " + args.model_chosen)
-        model_gen = Segmentation_model_Point(filters=32, pointnet=True if 'd4' in model_names[args.model_chosen] else False)
+        model_gen = Segmentation_model_Point(
+            filters=32, pointnet='d4' in model_names[args.model_chosen]
+        )
         file_name = model_names[args.model_chosen]
         weight_dir = '../weights/' + file_name
     else:

@@ -41,7 +41,7 @@ def npy2point(folder='ct_train', to_save='v', number_points=300, dim=3, crop_siz
     :param tocrop: whether to crop the mask / gt
     :return:
     """
-    assert to_save=='' or to_save=='v' or to_save=='p'
+    assert to_save in ['', 'v', 'p']
     import mcubes
     crop_from = 128 - crop_size//2
     crop_to = 128 + crop_size//2
@@ -52,10 +52,10 @@ def npy2point(folder='ct_train', to_save='v', number_points=300, dim=3, crop_siz
     if not os.path.exists(plots_fold):
         os.mkdir(plots_fold)
     folder_path = os.path.join('../../input/PnpAda_release_data/', folder, "mask/")
-    for path in tqdm(glob.glob(folder_path + '*.npy')):
+    for path in tqdm(glob.glob(f'{folder_path}*.npy')):
         filename = os.path.splitext(os.path.basename(path))[0]
-        vertices_path = os.path.join(vertices_fold, filename + '.npy')
-        plot_path = os.path.join(plots_fold, filename + '.npy')
+        vertices_path = os.path.join(vertices_fold, f'{filename}.npy')
+        plot_path = os.path.join(plots_fold, f'{filename}.npy')
         if not os.path.exists(vertices_path):
             mask = np.load(path)
             if args.toplot:
@@ -90,9 +90,9 @@ def npy2point(folder='ct_train', to_save='v', number_points=300, dim=3, crop_siz
                     plt.imshow(point_cloud, cmap='gray')
                     plt.show()
 
-            if to_save=='v' or to_save=='':
+            if to_save in ['v', '']:
                 np.save(vertices_path, vertices_array)
-            if to_save=='p' or to_save=='':
+            if to_save in ['p', '']:
                 np.save(plot_path, point_cloud)
                 # mcubes.export_mesh(vertices, triangles, "heart_single_slice.dae", "MyHeart_s")
     print("finish")
@@ -130,6 +130,6 @@ if __name__ == "__main__":
     parser.add_argument("-fold", help="the data folder", type=str, default='ct_train')
     parser.add_argument("-toplot", help="whether to plot images", action='store_true')
     args = parser.parse_args()
-    assert args.fold == 'ct_train' or args.fold == 'ct_val' or args.fold == 'mr_train' or args.fold == 'mr_val'
+    assert args.fold in ['ct_train', 'ct_val', 'mr_train', 'mr_val']
 
     npy2point(folder=args.fold, to_save='v', tocrop=False)

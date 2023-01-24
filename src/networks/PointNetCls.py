@@ -163,9 +163,8 @@ class PointNetfeat(nn.Module):
         x = x.view(-1, 1024)
         if self.global_feat:
             return x, trans, trans_feat
-        else:
-            x = x.view(-1, 1024, 1).repeat(1, 1, n_pts)
-            return torch.cat([x, pointfeat], 1), trans, trans_feat
+        x = x.view(-1, 1024, 1).repeat(1, 1, n_pts)
+        return torch.cat([x, pointfeat], 1), trans, trans_feat
 
 class PointNetCls(nn.Module):
     def __init__(self, feature_transform=False, sample_transform=True, kernel_size=1, stride=1, in_channel=3, dim=3, ext=False, drop=0.3, heinit=False, cvinit=False):
@@ -220,8 +219,9 @@ def feature_transform_regularizer(trans):
     I = torch.eye(d)[None, :, :]
     if trans.is_cuda:
         I = I.cuda()
-    loss = torch.mean(torch.norm(torch.bmm(trans, trans.transpose(2,1)) - I, dim=(1,2)))
-    return loss
+    return torch.mean(
+        torch.norm(torch.bmm(trans, trans.transpose(2, 1)) - I, dim=(1, 2))
+    )
 
 if __name__ == '__main__':
     sim_data = torch.rand(1,3,3600).cuda()

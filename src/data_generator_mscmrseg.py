@@ -154,17 +154,15 @@ class ImageProcessor:
             random_order=True
         )
         if mask is None:
-            image_light = seq(images=image)
-            return image_light
+            return seq(images=image)
+        segmaps = np.array(mask, dtype=np.int32)
+        if image.ndim == 4:
+            image_light, masks = seq(images=image, segmentation_maps=segmaps)
         else:
-            segmaps = np.array(mask, dtype=np.int32)
-            if image.ndim == 4:
-                image_light, masks = seq(images=image, segmentation_maps=segmaps)
-            else:
-                image_light, masks = seq(images=image[np.newaxis,...], segmentation_maps=segmaps[np.newaxis,...])
-                image_light = image_light[0]
-                masks = masks[0]
-            return image_light, masks
+            image_light, masks = seq(images=image[np.newaxis,...], segmentation_maps=segmaps[np.newaxis,...])
+            image_light = image_light[0]
+            masks = masks[0]
+        return image_light, masks
 
     @staticmethod
     def split_data(img_path):
@@ -173,8 +171,7 @@ class ImageProcessor:
         :return:
         """
         df_train = pd.read_csv(img_path)
-        ids_train = df_train['img']
-        return ids_train
+        return df_train['img']
 
     @staticmethod
     def crop_volume(vol, crop_size=112):
@@ -195,8 +192,8 @@ class DataGenerator_PointNet:
                  toprint=False,
                  aug2=False,
                  data_dir='./../input_aug/processed/'):
-        assert phase == "train" or phase == "valid", r"phase has to be either'train' or 'valid'"
-        assert source == "source" or source == "target"
+        assert phase in ["train", "valid"], r"phase has to be either'train' or 'valid'"
+        assert source in ["source", "target"]
         assert isinstance(apply_noise, bool), "apply_noise has to be bool"
         assert isinstance(apply_online_aug, bool), "apply_online_aug has to be bool"
         self._data = df
@@ -213,10 +210,7 @@ class DataGenerator_PointNet:
         self._index = 0
         self._totalcount = 0
         self._aug2 = aug2
-        if n_samples == -1:
-            self._n_samples = len(df)
-        else:
-            self._n_samples = n_samples
+        self._n_samples = len(df) if n_samples == -1 else n_samples
         self._offline_aug = offline_aug
         self._toprint = toprint
         self._data_dir = data_dir
@@ -236,23 +230,22 @@ class DataGenerator_PointNet:
     def get_image_paths(self, id):
         if self._source == "source":
             if self._phase == "train":
-                img_path = os.path.join(self._data_dir, 'processed/trainA/{}.png'.format(id))
-                mask_path = os.path.join(self._data_dir, 'processed/trainAmask/{}.png'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'vertices/trainA/{}.npy'.format(id))
+                img_path = os.path.join(self._data_dir, f'processed/trainA/{id}.png')
+                mask_path = os.path.join(self._data_dir, f'processed/trainAmask/{id}.png')
+                vertex_path = os.path.join(self._data_dir, f'vertices/trainA/{id}.npy')
             else:
-                img_path = os.path.join(self._data_dir, 'processed/testA/{}.png'.format(id))
-                mask_path = os.path.join(self._data_dir, 'processed/testAmask/{}.png'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'vertices/testA/{}.npy'.format(id))
+                img_path = os.path.join(self._data_dir, f'processed/testA/{id}.png')
+                mask_path = os.path.join(self._data_dir, f'processed/testAmask/{id}.png')
+                vertex_path = os.path.join(self._data_dir, f'vertices/testA/{id}.npy')
 
+        elif self._phase == "train":
+            img_path = os.path.join(self._data_dir, f'processed/trainB/{id}.png')
+            mask_path = os.path.join(self._data_dir, f'processed/trainBmask/{id}.png')
+            vertex_path = os.path.join(self._data_dir, f'vertices/trainB/{id}.npy')
         else:
-            if self._phase == "train":
-                img_path = os.path.join(self._data_dir, 'processed/trainB/{}.png'.format(id))
-                mask_path = os.path.join(self._data_dir, 'processed/trainBmask/{}.png'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'vertices/trainB/{}.npy'.format(id))
-            else:
-                img_path = os.path.join(self._data_dir, 'processed/trainB_orig/{}.png'.format(id))
-                mask_path = os.path.join(self._data_dir, 'processed/trainBmask_orig/{}.png'.format(id))
-                vertex_path = os.path.join(self._data_dir, 'vertices/trainB_orig/{}.npy'.format(id))
+            img_path = os.path.join(self._data_dir, f'processed/trainB_orig/{id}.png')
+            mask_path = os.path.join(self._data_dir, f'processed/trainBmask_orig/{id}.png')
+            vertex_path = os.path.join(self._data_dir, f'vertices/trainB_orig/{id}.npy')
 
         return img_path, mask_path, vertex_path
 
@@ -281,11 +274,11 @@ class DataGenerator_PointNet:
         if self._totalcount >= self._n_samples:
             self._totalcount = 0
             raise StopIteration
-        for i in range(self._batch_size):
+        for _ in range(self._batch_size):
             indices.append(self._index)
             self._index += 1
             self._totalcount += 1
-            self._index = self._index % self._len
+            self._index %= self._len
             if self._totalcount >= self._n_samples:
                 break
         ids_train_batch = self._data.iloc[self._shuffle_indices[indices]]
@@ -301,7 +294,6 @@ class DataGenerator_PointNet:
             y_batch.append(mask)
             z_batch.append(vertex)
 
-        # min-max batch normalisation
         if self._apply_aug:
             if self._aug2:
                 x_batch, y_batch = ImageProcessor.augmentation2(np.array(x_batch), np.array(y_batch))
@@ -365,8 +357,6 @@ if __name__ == "__main__":
     source_train_generator = DataGenerator_PointNet(df=ids_train, batch_size=8, phase="train", apply_online_aug=True, source="source", crop_size=224, n_samples=100)
     for dataA in source_train_generator:
         imgA, maskA, _ = dataA
-        pass
-
     dataset = []
     temp = 0
     print(len(source_train_generator))
@@ -375,6 +365,4 @@ if __name__ == "__main__":
         dataset.extend(img)
         d = np.array(dataset).shape
         temp = np.array(dataset).shape
-        pass
-
     print(temp)

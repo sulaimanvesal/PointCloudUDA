@@ -23,7 +23,10 @@ def dice_coef_multilabel(y_true, y_pred, numLabels=4, channel='channel_first'):
     :param channel: 'channel_first' or 'channel_last'
     :return: the dice score
     """
-    assert channel=='channel_first' or channel=='channel_last', r"channel has to be either 'channel_first' or 'channel_last'"
+    assert channel in [
+        'channel_first',
+        'channel_last',
+    ], r"channel has to be either 'channel_first' or 'channel_last'"
     dice = 0
     if channel == 'channel_first':
         y_true = np.moveaxis(y_true, 1, -1)
@@ -47,9 +50,9 @@ def evaluate(img_gt, img_pred, apply_hd=False, apply_asd=False):
     """
 
     if img_gt.ndim != img_pred.ndim:
-        raise ValueError("The arrays 'img_gt' and 'img_pred' should have the "
-                         "same dimension, {} against {}".format(img_gt.ndim,
-                                                                img_pred.ndim))
+        raise ValueError(
+            f"The arrays 'img_gt' and 'img_pred' should have the same dimension, {img_gt.ndim} against {img_pred.ndim}"
+        )
 
     res = {}
     class_name = ["myo", "lv", "rv"]
@@ -91,9 +94,9 @@ def metrics2(img_gt, img_pred, apply_hd=False, apply_asd=False):
     :return:
     """
     if img_gt.ndim != img_pred.ndim:
-        raise ValueError("The arrays 'img_gt' and 'img_pred' should have the "
-                         "same dimension, {} against {}".format(img_gt.ndim,
-                                                                img_pred.ndim))
+        raise ValueError(
+            f"The arrays 'img_gt' and 'img_pred' should have the same dimension, {img_gt.ndim} against {img_pred.ndim}"
+        )
     res = {}
     class_name = ["myo", "la", "lv", "aa"]
     # Loop on each classes of the input images
@@ -174,5 +177,3 @@ def compute_metrics_on_files(gt, pred, ifhd=True, ifasd=True):
     return res
 
 
-if __name__ == '__main__':
-    pass

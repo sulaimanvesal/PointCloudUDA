@@ -89,8 +89,7 @@ def valid_model_with_one_dataset(seg_model, data_generator, hd=False):
             dice_list.append((result["lv"][0] + result["myo"][0] + result["rv"][0]) / 3.)
             if hd:
                 hd_list.append((result["lv"][1] + result["myo"][1] + result["rv"][1]) / 3.)
-    output = {}
-    output["dice"] = np.mean(np.array(dice_list))
+    output = {"dice": np.mean(np.array(dice_list))}
     output["loss"] = np.mean(np.array(loss_list))
     output["valid_vert_loss"] = np.mean(np.array(vert_loss_list))
 
@@ -108,7 +107,6 @@ def valid_model(seg_model, validA_iterator, validB_iterator, testB_generator):
     :param testB_generator: taret test set
     :return: the result dictionary
     """
-    valid_result = {}
     seg_model.eval()
 
     print("start to valid")
@@ -127,16 +125,15 @@ def valid_model(seg_model, validA_iterator, validB_iterator, testB_generator):
     test_lge_dice = output['dice']
     test_lge_loss = output['loss']
 
-    # test_lge_hd.append(output["hd"])
-    valid_result["val_dice"] = val_dice
-    valid_result['val_loss'] = val_loss
-    valid_result['valid_vert_loss'] = valid_vert_loss
-    valid_result['val_lge_dice'] = val_lge_dice
-    valid_result['val_lge_loss'] = val_lge_loss
-    valid_result['test_lge_dice'] = test_lge_dice
-    valid_result['test_lge_loss'] = test_lge_loss
-
-    return valid_result
+    return {
+        "val_dice": val_dice,
+        'val_loss': val_loss,
+        'valid_vert_loss': valid_vert_loss,
+        'val_lge_dice': val_lge_dice,
+        'val_lge_loss': val_lge_loss,
+        'test_lge_dice': test_lge_dice,
+        'test_lge_loss': test_lge_loss,
+    }
 
 
 @timeit
@@ -167,8 +164,6 @@ def train_epoch(model_gen, model_dis2, model_dis4, model_dis1=None,
         model_dis2.train()
     if args.d4:
         model_dis4.train()
-
-    train_result = {}
 
     running_seg_loss = []
     vertex_source_loss = []
@@ -329,7 +324,7 @@ def train_epoch(model_gen, model_dis2, model_dis4, model_dis1=None,
         if args.d4:
             optim_dis4.step()
 
-    train_result["seg_loss"] = np.mean(np.array(running_seg_loss))
+    train_result = {"seg_loss": np.mean(np.array(running_seg_loss))}
     train_result['seg_dice'] = np.mean(np.array(seg_dice))
     if args.d2:
         train_result['dis2_acc1'] = np.mean(np.array(d2_acc1))
@@ -370,8 +365,8 @@ def print_epoch_result(train_result, valid_result, epoch, max_epochs):
                       f'valid_lge_dice: {val_lge_dice:.5f} ' + \
                       f'test_lge_dice: {test_lge_dice:.5f} ' + f'valid_vert_loss: {valid_vert_loss:.5f} '
 
-    print_msg_line1 = f'train_loss: {seg_loss:.5f} ' + print_msg_line1
-    print_msg_line2 = f'train_dice: {seg_dice:.5f} ' + print_msg_line2
+    print_msg_line1 = f'train_loss: {seg_loss:.5f} {print_msg_line1}'
+    print_msg_line2 = f'train_dice: {seg_dice:.5f} {print_msg_line2}'
     if args.d1:
         dis1_acc1, dis1_acc2 = train_result["dis1_acc1"], train_result['dis1_acc2']
         print_msg_line2 += f'disctor1_train_acc1: {dis1_acc1: 5f} ' + f'disctor1_train_acc2: {dis1_acc2: 5f} '
@@ -382,7 +377,9 @@ def print_epoch_result(train_result, valid_result, epoch, max_epochs):
         dis4_acc1, dis4_acc2 = train_result["dis4_acc1"], train_result['dis4_acc2']
         print_msg_line2 += f'disctor4_train_acc1: {dis4_acc1: 5f} ' + f'disctor4_train_acc2: {dis4_acc2: 5f} '
 
-    print_msg_line1 = f'[{epoch:>{epoch_len}}/{max_epochs:>{epoch_len}}] ' + print_msg_line1
+    print_msg_line1 = (
+        f'[{epoch:>{epoch_len}}/{max_epochs:>{epoch_len}}] {print_msg_line1}'
+    )
     print_msg_line2 = ' ' * (2 * epoch_len + 4) + print_msg_line2
     print(print_msg_line1)
     print(print_msg_line2)

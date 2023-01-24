@@ -14,17 +14,23 @@ def read_img(pat_id):
     :param pat_id: the id if the patient to read in
     :return: the images and the ground truth
     """
-    assert os.path.exists('../input/PnpAda_release_data/test_ct_image_n_labels/image_ct_{}.nii.gz'.format(pat_id)), "The specified patid doesnot exists: {}".format(pat_id)
-    assert os.path.exists('../input/PnpAda_release_data/test_ct_image_n_labels/gth_ct_{}.nii.gz'.format(pat_id)), "The specified patid doesnot exists: {}".format(pat_id)
-    img, _, _ = load_nii('../input/PnpAda_release_data/test_ct_image_n_labels/image_ct_{}.nii.gz'.format(pat_id))
-    mask, _, _ = load_nii('../input/PnpAda_release_data/test_ct_image_n_labels/gth_ct_{}.nii.gz'.format(pat_id))
+    assert os.path.exists(
+        f'../input/PnpAda_release_data/test_ct_image_n_labels/image_ct_{pat_id}.nii.gz'
+    ), f"The specified patid doesnot exists: {pat_id}"
+    assert os.path.exists(
+        f'../input/PnpAda_release_data/test_ct_image_n_labels/gth_ct_{pat_id}.nii.gz'
+    ), f"The specified patid doesnot exists: {pat_id}"
+    img, _, _ = load_nii(
+        f'../input/PnpAda_release_data/test_ct_image_n_labels/image_ct_{pat_id}.nii.gz'
+    )
+    mask, _, _ = load_nii(
+        f'../input/PnpAda_release_data/test_ct_image_n_labels/gth_ct_{pat_id}.nii.gz'
+    )
     mask = np.array(mask, dtype=np.int)
     axis = 2
     img = np.moveaxis(img, axis, 0)[:, ::-1, ::-1]
     mask = np.moveaxis(mask, axis, 0)[:, ::-1, ::-1]
-    imgs = []
-    for i in range(img.shape[0]):
-        imgs.append(img[[i-1, i, (i+1) % img.shape[0]]])
+    imgs = [img[[i-1, i, (i+1) % img.shape[0]]] for i in range(img.shape[0])]
     masks = to_categorical(mask=mask[:,np.newaxis,...], num_classes=5)
     return np.array(imgs, dtype=np.float32), masks
 
@@ -32,9 +38,9 @@ def read_img(pat_id):
 def metrics(img_gt, img_pred, ifhd=True, ifasd=True):
     from medpy.metric.binary import hd, dc, asd
     if img_gt.ndim != img_pred.ndim:
-        raise ValueError("The arrays 'img_gt' and 'img_pred' should have the "
-                         "same dimension, {} against {}".format(img_gt.ndim,
-                                                                img_pred.ndim))
+        raise ValueError(
+            f"The arrays 'img_gt' and 'img_pred' should have the same dimension, {img_gt.ndim} against {img_pred.ndim}"
+        )
 
     res = []
     cat = {'Myo', 'LA-blood', 'LV-blood', 'AA'}
@@ -115,7 +121,7 @@ def evaluate_segmentation(weight_dir='', unet_model=None, bs=8, save=False, mode
     AA_asd,LAblood_asd,LVblood_asd,LVmyo_asd = [],[],[],[]
     pat_ids = [1003, 1008, 1014, 1019]
     for pat_id in pat_ids:
-        print("patient {}".format(pat_id))
+        print(f"patient {pat_id}")
         x_batch, mask = read_img(pat_id)
         pred = []
         for i in range(0, len(x_batch), bs):
@@ -169,7 +175,9 @@ def evaluate_segmentation(weight_dir='', unet_model=None, bs=8, save=False, mode
     std_LVblood_dc = np.around(np.std(np.array(LVblood_dc)), 3)
     std_LVmyo_dc = np.around(np.std(np.array(LVmyo_dc)), 3)
 
-    print("Ave AA DC: {}, {}, Ave LAblood DC: {}, {}, Ave LVblood DC: {}, {}, Ave LVmyo DC: {}, {}".format(mean_AA_dc, std_AA_dc, mean_LAblood_dc, std_LAblood_dc, mean_LVblood_dc, std_LVblood_dc, mean_LVmyo_dc, std_LVmyo_dc))
+    print(
+        f"Ave AA DC: {mean_AA_dc}, {std_AA_dc}, Ave LAblood DC: {mean_LAblood_dc}, {std_LAblood_dc}, Ave LVblood DC: {mean_LVblood_dc}, {std_LVblood_dc}, Ave LVmyo DC: {mean_LVmyo_dc}, {std_LVmyo_dc}"
+    )
     print("Ave Dice: {:.3f}, {:.3f}".format((mean_AA_dc + mean_LAblood_dc + mean_LVblood_dc + mean_LVmyo_dc) / 4., (std_AA_dc + std_LAblood_dc + std_LVblood_dc + std_LVmyo_dc) / 4.))
     if ifhd:
         mean_AA_hd = np.around(np.mean(np.array(AA_hd)), 3)
@@ -180,7 +188,9 @@ def evaluate_segmentation(weight_dir='', unet_model=None, bs=8, save=False, mode
         std_LAblood_hd = np.around(np.std(np.array(LAblood_hd)), 3)
         std_LVblood_hd = np.around(np.std(np.array(LVblood_hd)), 3)
         std_LVmyo_hd = np.around(np.std(np.array(LVmyo_hd)), 3)
-        print("Ave AA HD: {}, {}, Ave LAblood HD: {}, {}, Ave LVblood HD: {}, {}, Ave LVmyo HD: {}, {}".format(mean_AA_hd, std_AA_hd, mean_LAblood_hd, std_LAblood_hd, mean_LVblood_hd, std_LVblood_hd, mean_LVmyo_hd, std_LVmyo_hd))
+        print(
+            f"Ave AA HD: {mean_AA_hd}, {std_AA_hd}, Ave LAblood HD: {mean_LAblood_hd}, {std_LAblood_hd}, Ave LVblood HD: {mean_LVblood_hd}, {std_LVblood_hd}, Ave LVmyo HD: {mean_LVmyo_hd}, {std_LVmyo_hd}"
+        )
         print("Ave HD: {:.3f}, {:.3f}".format((mean_AA_hd + mean_LAblood_hd + mean_LVblood_hd + mean_LVmyo_hd) / 4., (std_AA_hd + std_LAblood_hd + std_LVblood_hd + std_LVmyo_hd) / 4.))
     if ifasd:
         mean_AA_asd = np.around(np.mean(np.array(AA_asd)), 3)
@@ -191,14 +201,22 @@ def evaluate_segmentation(weight_dir='', unet_model=None, bs=8, save=False, mode
         std_LAblood_asd = np.around(np.std(np.array(LAblood_asd)), 3)
         std_LVblood_asd = np.around(np.std(np.array(LVblood_asd)), 3)
         std_LVmyo_asd = np.around(np.std(np.array(LVmyo_asd)), 3)
-        print("Ave AA ASD: {}, {}, Ave LAblood ASD: {}, {}, Ave LVblood ASD: {}, {}, Ave LVmyo ASD: {}, {}".format(mean_AA_asd, std_AA_asd, mean_LAblood_asd, std_LAblood_asd, mean_LVblood_asd, std_LVblood_asd, mean_LVmyo_asd, std_LVmyo_asd))
+        print(
+            f"Ave AA ASD: {mean_AA_asd}, {std_AA_asd}, Ave LAblood ASD: {mean_LAblood_asd}, {std_LAblood_asd}, Ave LVblood ASD: {mean_LVblood_asd}, {std_LVblood_asd}, Ave LVmyo ASD: {mean_LVmyo_asd}, {std_LVmyo_asd}"
+        )
         print("Ave ASD: {:.3f}, {:.3f}".format((mean_AA_asd + mean_LAblood_asd + mean_LVblood_asd + mean_LVmyo_asd) / 4., (std_AA_asd + std_LAblood_asd + std_LVblood_asd + std_LVmyo_asd) / 4.))
 
-    print('{}, {}, {}, {}, {}, {}, {}, {}'.format(mean_AA_dc, std_AA_dc, mean_LAblood_dc, std_LAblood_dc, mean_LVblood_dc, std_LVblood_dc, mean_LVmyo_dc, std_LVmyo_dc))
+    print(
+        f'{mean_AA_dc}, {std_AA_dc}, {mean_LAblood_dc}, {std_LAblood_dc}, {mean_LVblood_dc}, {std_LVblood_dc}, {mean_LVmyo_dc}, {std_LVmyo_dc}'
+    )
     if ifhd:
-        print('{}, {}, {}, {}, {}, {}, {}, {}'.format(mean_AA_hd, std_AA_hd, mean_LAblood_hd, std_LAblood_hd, mean_LVblood_hd, std_LVblood_hd, mean_LVmyo_hd, std_LVmyo_hd))
+        print(
+            f'{mean_AA_hd}, {std_AA_hd}, {mean_LAblood_hd}, {std_LAblood_hd}, {mean_LVblood_hd}, {std_LVblood_hd}, {mean_LVmyo_hd}, {std_LVmyo_hd}'
+        )
     if ifasd:
-        print('{}, {}, {}, {}, {}, {}, {}, {}'.format(mean_AA_asd, std_AA_asd, mean_LAblood_asd, std_LAblood_asd, mean_LVblood_asd, std_LVblood_asd, mean_LVmyo_asd, std_LVmyo_asd))
+        print(
+            f'{mean_AA_asd}, {std_AA_asd}, {mean_LAblood_asd}, {std_LAblood_asd}, {mean_LVblood_asd}, {std_LVblood_asd}, {mean_LVmyo_asd}, {std_LVmyo_asd}'
+        )
 
 
 if __name__ == '__main__':
@@ -232,8 +250,8 @@ if __name__ == '__main__':
         toprint += "d1"
     if "d2lr" in weight_dir:
         toprint += "d2"
-    pointnet = True if 'd4lr' in weight_dir else False
-    extpn = True if 'extpn' in weight_dir else False
+    pointnet = 'd4lr' in weight_dir
+    extpn = 'extpn' in weight_dir
     if 'd4lr' in weight_dir:
         toprint += "d4"
         if extpn:

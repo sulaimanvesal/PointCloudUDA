@@ -6,7 +6,7 @@ import os
 class EarlyStoppingCallback:
 
     def __init__(self, patience, mode="min"):
-        assert mode=="max" or mode=="min", "mode can only be /'min/' or /'max/'"
+        assert mode in ["max", "min"], "mode can only be /'min/' or /'max/'"
         self.patience = patience
         self.mode = mode
         self.counter = 0
@@ -44,7 +44,7 @@ class ModelCheckPointCallback:
         :param model_name: file name of the intermediate model
         :param n_epochs: number of epochs
         """
-        assert mode=="max" or mode=="min", "mode can only be /'min/' or /'max/'"
+        assert mode in ["max", "min"], "mode can only be /'min/' or /'max/'"
         self.mode = mode
         self.best_result = np.Inf if mode=='min' else np.NINF
         self.model_name = model_name
@@ -79,7 +79,7 @@ class ModelCheckPointCallback:
                     'model_state_dict': to_save,
                       'optimizer_state_dict': opt_to_save}, self.best_model_name)
             if epoch == self.n_epochs:
-                model_name = '{}{}{}{}'.format(self.best_model_name_base, '.Scr', np.around(self.best_result, 3), self.ext)
+                model_name = f'{self.best_model_name_base}.Scr{np.around(self.best_result, 3)}{self.ext}'
                 os.rename(self.best_model_name, model_name)
         if self.save_last_model and (epoch == self.n_epochs):
             opt_to_save = optimizer
@@ -98,4 +98,4 @@ if __name__ == '__main__':
     import os
     a = '../../train_pointnet.py'
     b, c = os.path.splitext(a)
-    print('{}{}{}{}'.format(b, '.Scr', np.around(0.862323232, 2), c))
+    print(f'{b}.Scr{np.around(0.862323232, 2)}{c}')

@@ -7,7 +7,7 @@ from scipy import ndimage
 
 def to_categorical(mask, num_classes, channel='channel_first'):
     assert mask.ndim == 4, "mask should have 4 dims"
-    if channel != 'channel_first' and channel != 'channel_last':
+    if channel not in ['channel_first', 'channel_last']:
         assert False, r"channel should be either 'channel_first' or 'channel_last'"
     assert num_classes > 1, "num_classes should be greater than 1"
     unique = np.unique(mask)
@@ -79,18 +79,18 @@ def resize_volume(img_volume, w=288, h=288):
     :param img_volume:
     :return:
     """
-    img_res = []
-    for im in img_volume:
-        img_res.append(cv2.resize(im, dsize=(w, h), interpolation=cv2.INTER_NEAREST))
-
+    img_res = [
+        cv2.resize(im, dsize=(w, h), interpolation=cv2.INTER_NEAREST)
+        for im in img_volume
+    ]
     return np.array(img_res)
 
 
 def read_lge_nii_save_png(crop_size=224):
 
     for pat_id in range(1,46):
-        print("saving the {}st lge subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_LGE.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st lge subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_LGE.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
@@ -98,36 +98,37 @@ def read_lge_nii_save_png(crop_size=224):
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size//2)
         vol = preprocess_volume(vol)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/lge_img/pat_{}_lge_{}.png'.format(pat_id,l), img=m)
-            l += 1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/lge_img/pat_{pat_id}_lge_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_lge_nii_label_save_png(crop_size=224):
     for pat_id in range(1,46):
-        print("saving the {}st lge subject".format(pat_id))
-        path = "../../input/raw_data/labels/patient{}_LGE_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st lge subject")
+        path = f"../../input/raw_data/labels/patient{pat_id}_LGE_manual.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
         if vol.shape[1]!=256 or vol.shape[2]!=256:
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size // 2)
-        # vol = preprocess_volume(vol)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/lge_label/pat_{}_lge_{}.png'.format(pat_id,l), img=m)
-            l +=1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/lge_label/pat_{pat_id}_lge_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_t2_nii_save_png(crop_size=224):
 
     for pat_id in range(1,46):
-        print("saving the {}st t2 subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_T2.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st t2 subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_T2.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
@@ -135,38 +136,38 @@ def read_t2_nii_save_png(crop_size=224):
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size // 2)
         vol = preprocess_volume(vol)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/t2_img/pat_{}_T2_{}.png'.format(pat_id,l), img=m)
-            l +=1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/t2_img/pat_{pat_id}_T2_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_t2_nii_label_save_png(crop_size=224):
 
     for pat_id in range(1,46):
-        print("saving the {}st t2 subject".format(pat_id))
-        path = "../../input/raw_data/labels/t2gt/patient{}_T2_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st t2 subject")
+        path = f"../../input/raw_data/labels/t2gt/patient{pat_id}_T2_manual.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
         if vol.shape[1] != 256 or vol.shape[2] != 256:
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size // 2)
-        # vol = preprocess_volume(vol)
-        # vol_unique = np.unique(vol)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/t2_label/pat_{}_T2_{}.png'.format(pat_id,l), img=m)
-            l +=1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/t2_label/pat_{pat_id}_T2_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_bssfp_nii_save_png(crop_size=224):
 
     for pat_id in range(1,46):
-        print("saving the {}st bssfp subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_C0.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st bssfp subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_C0.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
@@ -174,33 +175,35 @@ def read_bssfp_nii_save_png(crop_size=224):
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size // 2)
         vol = preprocess_volume(vol)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/bssfp_img/pat_{}_bSSFP_{}.png'.format(pat_id,l), img=m)
-            l +=1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/bssfp_img/pat_{pat_id}_bSSFP_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_bssfp_nii_label_save_png(crop_size=224):
 
     for pat_id in range(1,46):
-        print("saving the {}st bssfp subject".format(pat_id))
-        path = "../../input/raw_data/labels/patient{}_C0_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st bssfp subject")
+        path = f"../../input/raw_data/labels/patient{pat_id}_C0_manual.nii.gz"
         vol = sitk.ReadImage(path)
         vol = sitk.Cast(sitk.RescaleIntensity(vol), sitk.sitkUInt8)
         vol = sitk.GetArrayFromImage(vol)
         if vol.shape[1]!=256 or vol.shape[2]!=256:
             vol = resize_volume(vol, w=256, h=256)
         vol = crop_volume(vol, crop_size // 2)
-        l =0
-        for m in vol:
-            cv2.imwrite(filename='../../input/processed/bssfp_label/pat_{}_bSSFP_{}.png'.format(pat_id,l), img=m)
-            l +=1
+        for l, m in enumerate(vol):
+            cv2.imwrite(
+                filename=f'../../input/processed/bssfp_label/pat_{pat_id}_bSSFP_{l}.png',
+                img=m,
+            )
     print("finish")
 
 
 def read_lge_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='train'):
-    assert phase=='train' or phase=='valid'
+    assert phase in ['train', 'valid']
     if phase=='train':
         start = 6
         end = 46
@@ -210,8 +213,8 @@ def read_lge_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='tra
         end = 6
         data_path = 'testB'
     for pat_id in range(start, end):
-        print("saving the {}st lge subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_LGE.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st lge subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_LGE.nii.gz"
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing())
         shape = vol.GetSize()
@@ -224,15 +227,17 @@ def read_lge_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='tra
         image = ndimage.interpolation.zoom(vol1, real_resize_factor, order=1)
         image = crop_volume(image, crop_size // 2)
         image = (image - image.mean()) / image.std()
-        l = 0
-        for m in image:
-            np.save(file='../../input/processed/npy/' + data_path + '/pat_{}_lge_{}.npy'.format(pat_id, l), arr=m)
-            l += 1
+        for l, m in enumerate(image):
+            np.save(
+                file=f'../../input/processed/npy/{data_path}'
+                + f'/pat_{pat_id}_lge_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
 def read_lge_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, phase='train'):
-    assert phase == 'train' or phase == 'valid'
+    assert phase in ['train', 'valid']
     if phase == 'train':
         start = 6
         end = 46
@@ -244,8 +249,11 @@ def read_lge_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, pha
         data_path = 'testBmask'
         image_path = 'lgegt'
     for pat_id in range(start, end):
-        print("saving the {}st lge subject".format(pat_id))
-        path = "../../input/raw_data/labels/" + image_path + "/patient{}_LGE_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st lge subject")
+        path = (
+            f"../../input/raw_data/labels/{image_path}"
+            + f"/patient{pat_id}_LGE_manual.nii.gz"
+        )
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing())  # [ 1.25 1.25 12.00000286]
         shape = vol.GetSize()
@@ -264,15 +272,17 @@ def read_lge_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, pha
         masks = ndimage.interpolation.zoom(labels, real_resize_factor, order=1)  # (19 4 267 267)
         masks = np.argmax(masks, axis=1)  # (19, 267, 267)
         masks = crop_volume(masks, crop_size // 2)
-        l = 0
-        for m in masks:
-            np.save(file='../../input/processed/npy/' + data_path + '/pat_{}_lge_{}.npy'.format(pat_id, l), arr=m)
-            l += 1
+        for l, m in enumerate(masks):
+            np.save(
+                file=f'../../input/processed/npy/{data_path}'
+                + f'/pat_{pat_id}_lge_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
 def read_bssfp_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='train'):
-    assert phase=='train' or phase=='valid'
+    assert phase in ['train', 'valid']
     if phase=='train':
         start = 6
         end = 46
@@ -282,8 +292,8 @@ def read_bssfp_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='t
         end = 6
         data_path = 'testA'
     for pat_id in range(start, end):
-        print("saving the {}st bssfp subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_C0.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st bssfp subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_C0.nii.gz"
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing())
         shape = vol.GetSize()
@@ -296,15 +306,17 @@ def read_bssfp_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='t
         image = ndimage.interpolation.zoom(vol1, real_resize_factor, order=1)
         image = crop_volume(image, crop_size // 2)
         image = (image - image.mean()) / image.std()
-        l = 0
-        for m in image:
-            np.save(file='../../input/processed/npy/' + data_path + '/pat_{}_bSSFP_{}.npy'.format(pat_id, l), arr=m)
-            l += 1
+        for l, m in enumerate(image):
+            np.save(
+                file=f'../../input/processed/npy/{data_path}'
+                + f'/pat_{pat_id}_bSSFP_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
 def read_bssfp_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, phase='train'):
-    assert phase == 'train' or phase == 'valid'
+    assert phase in ['train', 'valid']
     if phase=='train':
         start = 6
         end = 46
@@ -314,8 +326,8 @@ def read_bssfp_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, p
         end = 6
         data_path = 'testAmask'
     for pat_id in range(start, end):
-        print("saving the {}st bssfp subject".format(pat_id))
-        path = "../../input/raw_data/labels/c0gt/patient{}_C0_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st bssfp subject")
+        path = f"../../input/raw_data/labels/c0gt/patient{pat_id}_C0_manual.nii.gz"
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing()) # [ 1.25 1.25 12.00000286]
         shape = vol.GetSize()
@@ -334,15 +346,17 @@ def read_bssfp_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, p
         masks = ndimage.interpolation.zoom(labels, real_resize_factor, order=1) # (19 4 267 267)
         masks = np.argmax(masks, axis=1) # (19, 267, 267)
         masks = crop_volume(masks, crop_size // 2)
-        l =0
-        for m in masks:
-            np.save(file='../../input/processed/npy/' + data_path + '/pat_{}_bSSFP_{}.npy'.format(pat_id,l), arr=m)
-            l +=1
+        for l, m in enumerate(masks):
+            np.save(
+                file=f'../../input/processed/npy/{data_path}'
+                + f'/pat_{pat_id}_bSSFP_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
 def read_t2_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='train'):
-    assert phase=='train' or phase=='valid'
+    assert phase in ['train', 'valid']
     if phase=='train':
         start = 6
         end = 46
@@ -352,8 +366,8 @@ def read_t2_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='trai
         end = 6
         data_path = 'testA'
     for pat_id in range(start, end):
-        print("saving the {}st T2 subject".format(pat_id))
-        path = "../../input/raw_data/dataset/patient{}_T2.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st T2 subject")
+        path = f"../../input/raw_data/dataset/patient{pat_id}_T2.nii.gz"
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing())
         shape = vol.GetSize()
@@ -366,15 +380,17 @@ def read_t2_nii_save_npy(new_spacing=(1.2, 1.2, 5.0), crop_size=224, phase='trai
         image = ndimage.interpolation.zoom(vol1, real_resize_factor, order=1)
         image = crop_volume(image, crop_size // 2)
         image = (image - image.mean()) / image.std()
-        l = 0
-        for m in image:
-            np.save(file='../../input/processed/npy/' + data_path + '/pat_{}_T2_{}.npy'.format(pat_id, l), arr=m)
-            l += 1
+        for l, m in enumerate(image):
+            np.save(
+                file=f'../../input/processed/npy/{data_path}'
+                + f'/pat_{pat_id}_T2_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
 def read_t2_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, phase='train'):
-    assert phase == 'train' or phase == 'valid'
+    assert phase in ['train', 'valid']
     if phase=='train':
         start = 6
         end = 46
@@ -384,8 +400,8 @@ def read_t2_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, phas
         end = 6
         data_path = 'testAmask'
     for pat_id in range(start, end):
-        print("saving the {}st T2 subject".format(pat_id))
-        path = "../../input/raw_data/labels/t2gt/patient{}_T2_manual.nii.gz".format(pat_id)
+        print(f"saving the {pat_id}st T2 subject")
+        path = f"../../input/raw_data/labels/t2gt/patient{pat_id}_T2_manual.nii.gz"
         vol = sitk.ReadImage(path)
         spacing = np.array(vol.GetSpacing()) # [ 1.25 1.25 12.00000286]
         shape = vol.GetSize()
@@ -404,12 +420,12 @@ def read_t2_nii_label_save_npy(new_spacing = (1.2, 1.2, 5.), crop_size=224, phas
         masks = ndimage.interpolation.zoom(labels, real_resize_factor, order=1) # (19 4 267 267)
         masks = np.argmax(masks, axis=1) # (19, 267, 267)
         masks = crop_volume(masks, crop_size // 2)
-        l =0
-        for m in masks:
-            np.save(file='../../input/processed/T2/npy/' + data_path + '/pat_{}_T2_{}.npy'.format(pat_id,l), arr=m)
-            l +=1
+        for l, m in enumerate(masks):
+            np.save(
+                file=f'../../input/processed/T2/npy/{data_path}'
+                + f'/pat_{pat_id}_T2_{l}.npy',
+                arr=m,
+            )
     print("finish")
 
 
-if __name__ == "__main__":
-    pass

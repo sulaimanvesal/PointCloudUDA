@@ -11,15 +11,8 @@ class Encoder(nn.Module):
         self.filter = filters
         for i in range(n_block):
             out_ch = filters * 2 ** i
-            if i == 0:
-                in_ch = in_channels
-            else:
-                in_ch = filters * 2 ** (i - 1)
-
-            if padding == 'same':
-                pad = kernel_size[0] // 2
-            else:
-                pad = 0
+            in_ch = in_channels if i == 0 else filters * 2 ** (i - 1)
+            pad = kernel_size[0] // 2 if padding == 'same' else 0
             model = [nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=kernel_size, padding=pad),
                      nn.LeakyReLU(inplace=True)]
             if batch_norm:
@@ -36,8 +29,7 @@ class Encoder(nn.Module):
         skip = []
         output = x
         res = None
-        i = 0
-        for name, layer in self._modules.items():
+        for i, (name, layer) in enumerate(self._modules.items()):
             if i % 2 == 0:
                 output = layer(output)
                 skip.append(output)
@@ -47,7 +39,6 @@ class Encoder(nn.Module):
                     output = layer(output)
                 output = nn.MaxPool2d(kernel_size=(2,2))(output)
                 res = output
-            i += 1
         return output, skip
 
 
@@ -101,10 +92,7 @@ class Decoder(nn.Module):
     def __init__(self, filters=32, n_block=4, kernel_size=(3, 3), batch_norm=True, padding='same', drop=False):
         super().__init__()
         self.n_block = n_block
-        if padding == 'same':
-            pad = kernel_size[0] // 2
-        else:
-            pad = 0
+        pad = kernel_size[0] // 2 if padding == 'same' else 0
         for i in reversed(range(n_block)):
             out_ch = filters * 2 ** i
             in_ch = 2 * out_ch
@@ -126,13 +114,11 @@ class Decoder(nn.Module):
             self.add_module('decoder2_%d' % (i + 1), nn.Sequential(*model))
 
     def forward(self, x, skip):
-        i = 0
         output = x
-        for _, layer in self._modules.items():
+        for i, (_, layer) in enumerate(self._modules.items()):
             output = layer(output)
             if i % 2 == 0:
                 output = cat([skip.pop(), output], 1)
-            i += 1
         return output
 
 
@@ -153,13 +139,8 @@ class Segmentation_model(nn.Module):
         output_bottleneck = self.bottleneck(output)
         output = self.decoder(output_bottleneck, skip)
         output = self.classifier(output)
-        output2 = None
-        if self._feature_dis:
-            output2 = self.classifier2(output_bottleneck)
-        if features_out:
-            return output, output2, None
-        else:
-            return output
+        output2 = self.classifier2(output_bottleneck) if self._feature_dis else None
+        return (output, output2, None) if features_out else output
 
 
 class Segmentation_model_Point(nn.Module):
@@ -215,22 +196,17 @@ class Segmentation_model_Point(nn.Module):
                 skip[i] = skip[i].to(self._cuda1)
         output_bottleneck = self.bottleneck(output)
         output2 = None
-        output_pointNet = None
-        if self._pointnet:
-            output_pointNet = self.pointNet(output_bottleneck)
+        output_pointNet = self.pointNet(output_bottleneck) if self._pointnet else None
         output = self.decoder(output_bottleneck, skip)
         output = self.classifier(output)
         if self._multicuda:
             output = output.to(self._cuda0)
         if print_shape:
-            print("bottelneck: {}".format(output_bottleneck.size()))
-            print("output: {}".format(output.size()))
+            print(f"bottelneck: {output_bottleneck.size()}")
+            print(f"output: {output.size()}")
             if self._pointnet:
-                print("pointcloud: {}".format(output_pointNet.size()))
-        if features_out:
-            return output, output2, output_pointNet
-        else:
-            return output
+                print(f"pointcloud: {output_pointNet.size()}")
+        return (output, output2, output_pointNet) if features_out else output
 
 
 if __name__ == '__main__':
